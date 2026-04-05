@@ -1,0 +1,124 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@source "../app";
+@source "../components";
+@source "../lib";
+
+/* Light theme (default) */
+:root {
+  --bg: #f8fafc;
+  --fg: #0f172a;
+  --muted: #64748b;
+  --card: #ffffff;
+  --border: #e2e8f0;
+  --nav-hover: rgba(15, 23, 42, 0.06);
+  --nav-active-bg: rgba(37, 99, 235, 0.12);
+  --overlay: rgba(15, 23, 42, 0.45);
+  --chart-axis: #64748b;
+  --chart-tooltip-bg: #ffffff;
+  --chart-tooltip-border: #e2e8f0;
+  --chart-tooltip-fg: #0f172a;
+
+  /* Auth (see app/(auth)/auth.css) */
+  --auth-bg-a: rgba(59, 130, 246, 0.1);
+  --auth-bg-b: rgba(99, 102, 241, 0.05);
+  --auth-bg-base: linear-gradient(165deg, #f8fafc 0%, #eff6ff 40%, #f1f5f9 100%);
+  --auth-card-bg: rgba(255, 255, 255, 0.94);
+  --auth-card-border: rgba(148, 163, 184, 0.45);
+  --auth-card-shadow: 0 0 0 1px rgba(255, 255, 255, 0.8) inset,
+    0 24px 48px rgba(15, 23, 42, 0.08);
+  --auth-title: #0f172a;
+  --auth-text: #475569;
+  --auth-label: #64748b;
+  --auth-input-bg: #ffffff;
+  --auth-input-fg: #0f172a;
+  --auth-input-border: #cbd5e1;
+  --auth-input-border-hover: #94a3b8;
+  --auth-input-placeholder: #94a3b8;
+  --auth-secondary-fg: #334155;
+  --auth-secondary-border: #cbd5e1;
+  --auth-secondary-hover: rgba(15, 23, 42, 0.04);
+  --auth-footer-border: rgba(148, 163, 184, 0.5);
+  --auth-link: #2563eb;
+  --auth-brand-name: #64748b;
+}
+
+.dark {
+  --bg: #0b0f14;
+  --fg: #e8edf4;
+  --muted: #8b9cb3;
+  --card: #121922;
+  --border: #223042;
+  --nav-hover: rgba(255, 255, 255, 0.05);
+  --nav-active-bg: rgba(59, 130, 246, 0.18);
+  --overlay: rgba(0, 0, 0, 0.55);
+  --chart-axis: #8b9cb3;
+  --chart-tooltip-bg: #121922;
+  --chart-tooltip-border: #223042;
+  --chart-tooltip-fg: #e8edf4;
+
+  --auth-bg-a: rgba(59, 130, 246, 0.22);
+  --auth-bg-b: rgba(99, 102, 241, 0.08);
+  --auth-bg-base: linear-gradient(165deg, #070a0e 0%, #0b0f14 45%, #0a0d12 100%);
+  --auth-card-bg: rgba(17, 24, 32, 0.92);
+  --auth-card-border: rgba(51, 65, 85, 0.65);
+  --auth-card-shadow: 0 0 0 1px rgba(255, 255, 255, 0.04) inset,
+    0 32px 64px rgba(0, 0, 0, 0.55);
+  --auth-title: #f1f5f9;
+  --auth-text: #94a3b8;
+  --auth-label: #94a3b8;
+  --auth-input-bg: #0c1118;
+  --auth-input-fg: #f1f5f9;
+  --auth-input-border: #334155;
+  --auth-input-border-hover: #475569;
+  --auth-input-placeholder: #64748b;
+  --auth-secondary-fg: #e2e8f0;
+  --auth-secondary-border: #334155;
+  --auth-secondary-hover: rgba(255, 255, 255, 0.04);
+  --auth-footer-border: rgba(51, 65, 85, 0.6);
+  --auth-link: #60a5fa;
+  --auth-brand-name: #64748b;
+
+  --color-surface: #0f1419;
+  --color-surface-muted: #1a2332;
+  --color-accent: #3b82f6;
+  --color-accent-dim: #2563eb;
+}
+
+@theme {
+  --color-surface: #f1f5f9;
+  --color-surface-muted: #e2e8f0;
+  --color-accent: #2563eb;
+  --color-accent-dim: #1d4ed8;
+}
+
+body {
+  color: var(--fg);
+  background: var(--bg);
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+/* Safe areas (notch / home indicator) */
+.safe-pt {
+  padding-top: max(0.5rem, env(safe-area-inset-top));
+}
+
+.safe-pb {
+  padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
+}
+
+input,
+textarea,
+select,
+button {
+  font: inherit;
+}
+
+input,
+textarea,
+select {
+  color: inherit;
+}
