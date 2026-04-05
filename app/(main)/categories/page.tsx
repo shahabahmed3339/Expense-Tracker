@@ -65,6 +65,8 @@ export default function CategoriesPage() {
                 <button
                   type="button"
                   className="text-sm text-accent hover:underline"
+                  aria-label={`Edit category ${category.name}`}
+                  title="Edit category"
                   onClick={() =>
                     setEditingCategory({
                       id: category.id,
@@ -78,6 +80,8 @@ export default function CategoriesPage() {
                 <button
                   type="button"
                   className="text-sm text-red-400 transition-colors hover:underline"
+                  aria-label={`Delete category ${category.name}`}
+                  title="Delete category"
                   onClick={() => setCategoryToDelete({ id: category.id, name: category.name })}
                 >
                   Delete
@@ -140,6 +144,8 @@ export default function CategoriesPage() {
               type="submit"
               disabled={update.isPending}
               className="w-full rounded-md bg-accent px-3 py-2 text-sm font-medium text-white disabled:opacity-50"
+              aria-label={update.isPending ? "Saving category changes" : "Save category changes"}
+              title={update.isPending ? "Saving..." : "Save changes"}
             >
               {update.isPending ? "Saving..." : "Save changes"}
             </button>

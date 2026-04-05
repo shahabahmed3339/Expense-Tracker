@@ -66,6 +66,8 @@ export default function ExpensesPage() {
                 <button
                   type="button"
                   className="text-sm text-accent hover:underline"
+                  aria-label={`Edit expense ${expense.amount.toFixed(2)}`}
+                  title="Edit expense"
                   onClick={() =>
                     setEditingExpense({
                       id: expense.id,
@@ -83,6 +85,8 @@ export default function ExpensesPage() {
                 <button
                   type="button"
                   className="text-sm text-red-400 transition-colors hover:underline"
+                  aria-label={`Delete expense ${expense.amount.toFixed(2)}`}
+                  title="Delete expense"
                   onClick={() => setExpenseToDelete(expense.id)}
                 >
                   Delete

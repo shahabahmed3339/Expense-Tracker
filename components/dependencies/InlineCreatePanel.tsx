@@ -32,6 +32,8 @@ export function InlineCreatePanel({
             type="button"
             className="text-sm font-medium text-accent hover:underline"
             onClick={onToggle}
+            aria-label={open ? "Cancel inline creation" : toggleLabel}
+            title={open ? "Cancel" : toggleLabel}
           >
             {open ? "Cancel" : toggleLabel}
           </button>
@@ -46,6 +48,8 @@ export function InlineCreatePanel({
             disabled={isPending}
             className="w-full rounded-md bg-accent px-3 py-2 text-sm font-medium text-white hover:bg-accent-dim disabled:opacity-50"
             onClick={onSubmit}
+            aria-label={isPending ? pendingLabel : submitLabel}
+            title={isPending ? pendingLabel : submitLabel}
           >
             {isPending ? pendingLabel : submitLabel}
           </button>

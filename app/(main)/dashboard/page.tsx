@@ -58,7 +58,7 @@ export default function DashboardPage() {
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Dashboard</h1>
         <p className="mt-1 text-sm text-[var(--muted)]">
-          Realistic overview for <span className="text-[var(--fg)]">{data.month}</span> across expenses, budgets, categories,
+          Overview for <span className="text-[var(--fg)]">{data.month}</span> across expenses, budgets, categories,
           people, loans, and splits.
         </p>
       </div>

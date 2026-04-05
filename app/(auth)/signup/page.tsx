@@ -95,6 +95,8 @@ export default function SignupPage() {
             type="button"
             disabled={pending}
             className="exp-auth-primary"
+            aria-label={pending ? "Creating account" : "Create account"}
+            title={pending ? "Creating..." : "Create account"}
             onClick={async () => {
               setPending(true);
               try {
@@ -126,7 +128,10 @@ export default function SignupPage() {
         </div>
 
         <p className="exp-auth-footer">
-          Already have an account? <Link href="/login">Sign in</Link>
+          Already have an account?{" "}
+          <Link href="/login" aria-label="Go to sign in page" title="Sign in">
+            Sign in
+          </Link>
         </p>
       </div>
     </div>

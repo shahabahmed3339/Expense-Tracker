@@ -47,6 +47,8 @@ export function Modal({
             type="button"
             onClick={onClose}
             className="w-full min-h-11 rounded-md border border-[var(--border)] px-3 py-2.5 text-sm text-[var(--fg)] transition-colors hover:bg-[var(--nav-hover)] sm:min-h-0 sm:py-2"
+            aria-label="Close dialog"
+            title="Close"
           >
             Close
           </button>

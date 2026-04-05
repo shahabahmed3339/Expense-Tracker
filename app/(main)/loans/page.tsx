@@ -116,12 +116,14 @@ export default function LoansPage() {
                   </ul>
                 )}
                 <div className="flex gap-3 pt-2">
-                  <button type="button" className="text-sm text-accent hover:underline" onClick={() => setPayOpen(loan.id)}>
+                  <button type="button" className="text-sm text-accent hover:underline" aria-label={`Add payment for ${loan.person.name}`} title="Add payment" onClick={() => setPayOpen(loan.id)}>
                     Add payment
                   </button>
                   <button
                     type="button"
                     className="text-sm text-accent hover:underline"
+                    aria-label={`Edit loan for ${loan.person.name}`}
+                    title="Edit loan"
                     onClick={() =>
                       setEditingLoan({
                         id: loan.id,
@@ -136,6 +138,8 @@ export default function LoansPage() {
                   <button
                     type="button"
                     className="text-sm text-red-400 transition-colors hover:underline"
+                    aria-label={`Delete loan for ${loan.person.name}`}
+                    title="Delete loan"
                     onClick={() => setLoanToDelete(loan.id)}
                   >
                     Delete
@@ -203,7 +207,7 @@ export default function LoansPage() {
               required
             />
           </div>
-          <button type="submit" disabled={create.isPending} className="w-full rounded-md bg-accent px-3 py-2 text-sm font-medium text-white disabled:opacity-50">
+          <button type="submit" disabled={create.isPending} className="w-full rounded-md bg-accent px-3 py-2 text-sm font-medium text-white disabled:opacity-50" aria-label={create.isPending ? "Saving loan" : "Create loan"} title={create.isPending ? "Saving..." : "Create"}>
             {create.isPending ? "Saving..." : "Create"}
           </button>
         </form>
@@ -279,7 +283,7 @@ export default function LoansPage() {
                 required
               />
             </div>
-            <button type="submit" disabled={update.isPending} className="w-full rounded-md bg-accent px-3 py-2 text-sm font-medium text-white disabled:opacity-50">
+            <button type="submit" disabled={update.isPending} className="w-full rounded-md bg-accent px-3 py-2 text-sm font-medium text-white disabled:opacity-50" aria-label={update.isPending ? "Saving loan changes" : "Save loan changes"} title={update.isPending ? "Saving..." : "Save changes"}>
               {update.isPending ? "Saving..." : "Save changes"}
             </button>
           </form>
@@ -317,7 +321,7 @@ export default function LoansPage() {
             <label className="mb-1 block text-xs text-[var(--muted)]">Note</label>
             <input className="w-full rounded-md border border-[var(--border)] bg-[var(--bg)] px-3 py-2 text-sm" value={payNote} onChange={(event) => setPayNote(event.target.value)} />
           </div>
-          <button type="submit" disabled={addTx.isPending} className="w-full rounded-md bg-accent px-3 py-2 text-sm font-medium text-white disabled:opacity-50">
+          <button type="submit" disabled={addTx.isPending} className="w-full rounded-md bg-accent px-3 py-2 text-sm font-medium text-white disabled:opacity-50" aria-label={addTx.isPending ? "Saving payment" : "Save payment"} title={addTx.isPending ? "Saving..." : "Save payment"}>
             {addTx.isPending ? "Saving..." : "Save payment"}
           </button>
         </form>

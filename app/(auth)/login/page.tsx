@@ -80,6 +80,8 @@ export default function LoginPage() {
             type="button"
             disabled={pending}
             className="exp-auth-primary"
+            aria-label={pending ? "Signing in with email" : "Sign in with email"}
+            title={pending ? "Signing in..." : "Sign in with email"}
             onClick={async () => {
               setPending(true);
               const res = await signIn("credentials", {
@@ -98,6 +100,8 @@ export default function LoginPage() {
             <button
               type="button"
               className="exp-auth-secondary"
+              aria-label="Continue with Google"
+              title="Continue with Google"
               onClick={() => signIn("google", { callbackUrl: "/dashboard" })}
             >
               Continue with Google
@@ -106,7 +110,10 @@ export default function LoginPage() {
         </div>
 
         <p className="exp-auth-footer">
-          No account? <Link href="/signup">Sign up</Link>
+          No account?{" "}
+          <Link href="/signup" aria-label="Go to sign up page" title="Sign up">
+            Sign up
+          </Link>
         </p>
       </div>
     </div>

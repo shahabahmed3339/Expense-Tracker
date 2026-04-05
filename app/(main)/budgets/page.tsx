@@ -127,6 +127,8 @@ export default function BudgetsPage() {
                         <button
                           type="button"
                           className="text-sm text-accent hover:underline"
+                          aria-label={`Edit budget for ${budget.category.name}`}
+                          title="Edit budget"
                           onClick={() =>
                             setEditingBudget({
                               id: budget.id,
@@ -142,6 +144,8 @@ export default function BudgetsPage() {
                         <button
                           type="button"
                           className="text-xs text-red-400 transition-colors hover:underline"
+                          aria-label={`Delete budget for ${budget.category.name}`}
+                          title="Delete budget"
                           onClick={() => setBudgetToDelete(budget.id)}
                         >
                           Delete
@@ -209,6 +213,8 @@ export default function BudgetsPage() {
             type="submit"
             disabled={upsert.isPending}
             className="w-full rounded-md bg-accent px-3 py-2 text-sm font-medium text-white hover:bg-accent-dim disabled:opacity-50"
+            aria-label={upsert.isPending ? "Saving budget" : "Save budget"}
+            title={upsert.isPending ? "Saving..." : "Save"}
           >
             {upsert.isPending ? "Saving..." : "Save"}
           </button>
@@ -269,6 +275,8 @@ export default function BudgetsPage() {
               type="submit"
               disabled={update.isPending}
               className="w-full rounded-md bg-accent px-3 py-2 text-sm font-medium text-white hover:bg-accent-dim disabled:opacity-50"
+              aria-label={update.isPending ? "Saving budget changes" : "Save budget changes"}
+              title={update.isPending ? "Saving..." : "Save changes"}
             >
               {update.isPending ? "Saving..." : "Save changes"}
             </button>

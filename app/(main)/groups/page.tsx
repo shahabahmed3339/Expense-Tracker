@@ -64,6 +64,8 @@ export default function GroupsPage() {
                 <button
                   type="button"
                   className="text-sm text-accent hover:underline"
+                  aria-label={`Edit person ${person.name}`}
+                  title="Edit person"
                   onClick={() =>
                     setEditingPerson({
                       id: person.id,
@@ -77,6 +79,8 @@ export default function GroupsPage() {
                 <button
                   type="button"
                   className="text-sm text-red-400 transition-colors hover:underline"
+                  aria-label={`Delete person ${person.name}`}
+                  title="Delete person"
                   onClick={() => setPersonToDelete({ id: person.id, name: person.name })}
                 >
                   Delete
@@ -134,6 +138,8 @@ export default function GroupsPage() {
               type="submit"
               disabled={update.isPending}
               className="w-full rounded-md bg-accent px-3 py-2 text-sm font-medium text-white disabled:opacity-50"
+              aria-label={update.isPending ? "Saving person changes" : "Save person changes"}
+              title={update.isPending ? "Saving..." : "Save changes"}
             >
               {update.isPending ? "Saving..." : "Save changes"}
             </button>

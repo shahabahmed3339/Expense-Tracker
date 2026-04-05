@@ -57,6 +57,8 @@ export function ConfirmDialog({
             type="button"
             onClick={onClose}
             className="rounded-md border border-[var(--border)] px-4 py-2 text-sm font-medium text-[var(--fg)] transition-colors hover:bg-[var(--nav-hover)]"
+            aria-label={cancelText}
+            title={cancelText}
           >
             {cancelText}
           </button>
@@ -66,6 +68,8 @@ export function ConfirmDialog({
             className={`rounded-md px-4 py-2 text-sm font-medium text-white transition-transform duration-200 hover:-translate-y-0.5 ${
               tone === "danger" ? "bg-red-500 hover:bg-red-600" : "bg-accent hover:bg-accent-dim"
             }`}
+            aria-label={confirmText}
+            title={confirmText}
           >
             {confirmText}
           </button>

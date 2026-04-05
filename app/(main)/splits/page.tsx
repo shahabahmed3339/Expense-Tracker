@@ -297,16 +297,20 @@ export default function SplitsPage() {
                             <button
                               type="button"
                               className="text-sm text-[var(--muted)] hover:underline"
+                              aria-label={`View split participants for ${entry.category.name}`}
+                              title="View split participants"
                               onClick={() => setViewExpenseId(entry.id)}
                             >
                               View
                             </button>
-                            <button type="button" className="text-sm text-accent hover:underline" onClick={() => loadSavedSplitSetup(entry.id)}>
+                            <button type="button" className="text-sm text-accent hover:underline" aria-label={`Edit split for ${entry.category.name}`} title="Edit split" onClick={() => loadSavedSplitSetup(entry.id)}>
                               Edit
                             </button>
                             <button
                               type="button"
                               className="text-sm text-red-400 hover:underline"
+                              aria-label={`Delete split for ${entry.category.name}`}
+                              title="Delete split"
                               onClick={() => {
                                 setDeleteExpenseId(entry.id);
                                 setDeleteOpen(true);
@@ -367,6 +371,8 @@ export default function SplitsPage() {
                   type="button"
                   className={`rounded-md px-3 py-2 text-sm sm:py-1 ${mode === "equal" ? "bg-accent text-white" : "border border-[var(--border)] bg-[var(--nav-hover)]"}`}
                   onClick={() => setMode("equal")}
+                  aria-label="Use equal split mode"
+                  title="Equal split"
                 >
                   Equal split
                 </button>
@@ -374,6 +380,8 @@ export default function SplitsPage() {
                   type="button"
                   className={`rounded-md px-3 py-2 text-sm sm:py-1 ${mode === "custom" ? "bg-accent text-white" : "border border-[var(--border)] bg-[var(--nav-hover)]"}`}
                   onClick={() => setMode("custom")}
+                  aria-label="Use custom split mode"
+                  title="Custom split"
                 >
                   Custom split
                 </button>
@@ -552,6 +560,8 @@ export default function SplitsPage() {
                 disabled={setSplits.isPending || !expenseId}
                 onClick={submitSplits}
                 className="w-full rounded-md bg-accent px-3 py-2 text-sm font-medium text-white disabled:opacity-50"
+                aria-label={setSplits.isPending ? "Saving split setup" : "Save split setup"}
+                title={setSplits.isPending ? "Saving..." : "Save split setup"}
               >
                 {setSplits.isPending ? "Saving..." : "Save split setup"}
               </button>
@@ -639,6 +649,8 @@ export default function SplitsPage() {
             type="button"
             disabled={setSplits.isPending || !deleteExpenseId}
             className="w-full rounded-md bg-red-500 px-3 py-2 text-sm font-medium text-white hover:bg-red-600 disabled:opacity-50"
+            aria-label={setSplits.isPending ? "Deleting saved splits" : "Delete saved splits"}
+            title={setSplits.isPending ? "Deleting..." : "Delete saved splits"}
             onClick={() => {
               if (!deleteExpenseId) return;
               setSplits.mutate({ expenseId: deleteExpenseId, splits: [] });

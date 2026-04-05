@@ -15,6 +15,8 @@ export function Form({ onSubmit }: { onSubmit: (data: FormData) => void }) {
       <button
         type="submit"
         className="rounded-md bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent-dim"
+        aria-label="Save"
+        title="Save"
       >
         Save
       </button>
