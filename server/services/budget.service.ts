@@ -1,6 +1,7 @@
 import type { PrismaClient } from "@prisma/client";
 import { TRPCError } from "@trpc/server";
 import { remainingBudget } from "@/lib/calculations/budget";
+import { getNetCategorySpendForRange } from "./expense.service";
 
 function monthRange(month: string) {
   const [y, m] = month.split("-").map(Number);
@@ -12,7 +13,58 @@ function monthRange(month: string) {
   return { start, end };
 }
 
+export async function ensureRecurringBudgetsForMonth(
+  prisma: PrismaClient,
+  userId: string,
+  month: string,
+) {
+  const existing = await prisma.budget.findMany({
+    where: { userId, month },
+    select: { categoryId: true },
+  });
+  const existingCategoryIds = new Set(existing.map((budget) => budget.categoryId));
+
+  const recurringBudgets = await prisma.budget.findMany({
+    where: {
+      userId,
+      isRecurring: true,
+      month: { lt: month },
+    },
+    orderBy: { month: "desc" },
+    select: { categoryId: true, amount: true },
+  });
+
+  const nextBudgets: { userId: string; categoryId: string; month: string; amount: number; isRecurring: true }[] = [];
+  const seededCategoryIds = new Set<string>();
+
+  for (const budget of recurringBudgets) {
+    if (existingCategoryIds.has(budget.categoryId) || seededCategoryIds.has(budget.categoryId)) {
+      continue;
+    }
+
+    seededCategoryIds.add(budget.categoryId);
+    nextBudgets.push({
+      userId,
+      categoryId: budget.categoryId,
+      month,
+      amount: budget.amount,
+      isRecurring: true,
+    });
+  }
+
+  if (!nextBudgets.length) {
+    return;
+  }
+
+  await prisma.budget.createMany({
+    data: nextBudgets,
+    skipDuplicates: true,
+  });
+}
+
 export async function listBudgetsForMonth(prisma: PrismaClient, userId: string, month: string) {
+  await ensureRecurringBudgetsForMonth(prisma, userId, month);
+
   return prisma.budget.findMany({
     where: { userId, month },
     include: { category: true },
@@ -85,23 +137,18 @@ export async function budgetVsActualForMonth(
   userId: string,
   month: string,
 ) {
+  await ensureRecurringBudgetsForMonth(prisma, userId, month);
+
   const { start, end } = monthRange(month);
   const budgets = await prisma.budget.findMany({
     where: { userId, month },
     include: { category: true },
   });
+  const netSpendByCategory = await getNetCategorySpendForRange(prisma, userId, start, end);
 
   const rows = await Promise.all(
     budgets.map(async (b) => {
-      const spent = await prisma.expense.aggregate({
-        _sum: { amount: true },
-        where: {
-          userId,
-          categoryId: b.categoryId,
-          date: { gte: start, lt: end },
-        },
-      });
-      const totalSpent = spent._sum.amount ?? 0;
+      const totalSpent = netSpendByCategory.get(b.categoryId) ?? 0;
       return {
         budgetId: b.id,
         categoryId: b.categoryId,

@@ -3,8 +3,11 @@ import { router, protectedProcedure } from "../trpc";
 import { replaceExpenseSplits } from "../services/split.service";
 
 const splitLine = z.object({
-  personId: z.string().min(1),
+  personId: z.string().min(1).optional().nullable(),
+  name: z.string().min(1),
   amount: z.number().positive(),
+  isSelf: z.boolean().optional(),
+  isPaid: z.boolean().optional(),
 });
 
 export const splitRouter = router({

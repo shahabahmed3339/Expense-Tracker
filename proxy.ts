@@ -1,8 +1,6 @@
 import nextAuth from "next-auth/middleware";
 
-export default function middleware(
-  ...args: Parameters<typeof nextAuth>
-) {
+export default function proxy(...args: Parameters<typeof nextAuth>) {
   return nextAuth(...args);
 }
 

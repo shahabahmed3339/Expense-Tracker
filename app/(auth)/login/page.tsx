@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { Loader } from "@/components/Loader";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -21,7 +22,9 @@ export default function LoginPage() {
   if (status === "loading" || status === "authenticated") {
     return (
       <div className="exp-auth-root">
-        <p className="exp-auth-loading">Loading…</p>
+        <div className="exp-auth-loading">
+          <Loader />
+        </div>
       </div>
     );
   }
@@ -68,7 +71,7 @@ export default function LoginPage() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             autoComplete="current-password"
-            placeholder="••••••••"
+            placeholder="........"
           />
         </div>
 
@@ -89,7 +92,7 @@ export default function LoginPage() {
               else router.replace("/dashboard");
             }}
           >
-            {pending ? "Signing in…" : "Sign in with email"}
+            {pending ? "Signing in..." : "Sign in with email"}
           </button>
           {!!process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID && (
             <button

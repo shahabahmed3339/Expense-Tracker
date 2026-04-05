@@ -2,6 +2,28 @@ import type { PrismaClient } from "@prisma/client";
 import { TRPCError } from "@trpc/server";
 import { sumFloats } from "@/lib/calculations/split";
 
+type SplitInput = {
+  personId?: string | null;
+  name: string;
+  amount: number;
+  isSelf?: boolean;
+  isPaid?: boolean;
+};
+
+type NetAmountRow = {
+  amount: number | null;
+};
+
+type NetByCategoryRow = {
+  categoryId: string;
+  amount: number | null;
+};
+
+export type NetTrendRow = {
+  month: string;
+  amount: number;
+};
+
 function monthRange(month: string) {
   const [y, m] = month.split("-").map(Number);
   if (!y || !m || m < 1 || m > 12) {
@@ -18,14 +40,112 @@ export async function calculateMonthlyExpenseTotal(
   month: string,
 ) {
   const { start, end } = monthRange(month);
-  const agg = await prisma.expense.aggregate({
-    _sum: { amount: true },
-    where: {
-      userId,
-      date: { gte: start, lt: end },
-    },
+  return calculateNetExpenseTotalForRange(prisma, userId, start, end);
+}
+
+export async function calculateNetExpenseTotalForRange(
+  prisma: PrismaClient,
+  userId: string,
+  start: Date,
+  end: Date,
+) {
+  const rows = await prisma.$queryRaw<NetAmountRow[]>`
+    SELECT COALESCE(
+      SUM(
+        e."amount" - COALESCE(ps."paidAmount", 0)
+      )::float,
+      0
+    ) AS amount
+    FROM "Expense" e
+    LEFT JOIN (
+      SELECT "expenseId", SUM("amount")::float AS "paidAmount"
+      FROM "ExpenseSplit"
+      WHERE "isPaid" = true AND "isSelf" = false
+      GROUP BY "expenseId"
+    ) ps ON ps."expenseId" = e."id"
+    WHERE e."userId" = ${userId}
+      AND e."date" >= ${start}
+      AND e."date" < ${end}
+  `;
+
+  return rows[0]?.amount ?? 0;
+}
+
+export async function getNetExpenseTrend(
+  prisma: PrismaClient,
+  userId: string,
+): Promise<NetTrendRow[]> {
+  const rows = await prisma.$queryRaw<NetTrendRow[]>`
+    SELECT
+      to_char(e."date", 'YYYY-MM') AS month,
+      COALESCE(SUM(e."amount" - COALESCE(ps."paidAmount", 0))::float, 0) AS amount
+    FROM "Expense" e
+    LEFT JOIN (
+      SELECT "expenseId", SUM("amount")::float AS "paidAmount"
+      FROM "ExpenseSplit"
+      WHERE "isPaid" = true AND "isSelf" = false
+      GROUP BY "expenseId"
+    ) ps ON ps."expenseId" = e."id"
+    WHERE e."userId" = ${userId}
+    GROUP BY 1
+    ORDER BY 1
+  `;
+
+  return rows;
+}
+
+export async function getNetCategorySpendTotals(prisma: PrismaClient, userId: string) {
+  const grouped = await prisma.$queryRaw<NetByCategoryRow[]>`
+    SELECT
+      e."categoryId" AS "categoryId",
+      COALESCE(SUM(e."amount" - COALESCE(ps."paidAmount", 0))::float, 0) AS amount
+    FROM "Expense" e
+    LEFT JOIN (
+      SELECT "expenseId", SUM("amount")::float AS "paidAmount"
+      FROM "ExpenseSplit"
+      WHERE "isPaid" = true AND "isSelf" = false
+      GROUP BY "expenseId"
+    ) ps ON ps."expenseId" = e."id"
+    WHERE e."userId" = ${userId}
+    GROUP BY e."categoryId"
+  `;
+
+  const categories = await prisma.category.findMany({
+    where: { userId, id: { in: grouped.map((g) => g.categoryId) } },
   });
-  return agg._sum.amount ?? 0;
+  const nameById = new Map(categories.map((category) => [category.id, category.name]));
+
+  return grouped.map((row) => ({
+    categoryId: row.categoryId,
+    categoryName: nameById.get(row.categoryId) ?? row.categoryId,
+    amount: row.amount ?? 0,
+  }));
+}
+
+export async function getNetCategorySpendForRange(
+  prisma: PrismaClient,
+  userId: string,
+  start: Date,
+  end: Date,
+) {
+  const grouped = await prisma.$queryRaw<NetByCategoryRow[]>`
+    SELECT
+      e."categoryId" AS "categoryId",
+      COALESCE(SUM(e."amount" - COALESCE(ps."paidAmount", 0))::float, 0) AS amount
+    FROM "Expense" e
+    LEFT JOIN (
+      SELECT "expenseId", SUM("amount")::float AS "paidAmount"
+      FROM "ExpenseSplit"
+      WHERE "isPaid" = true AND "isSelf" = false
+      GROUP BY "expenseId"
+    ) ps ON ps."expenseId" = e."id"
+    WHERE e."userId" = ${userId}
+      AND e."date" >= ${start}
+      AND e."date" < ${end}
+    GROUP BY e."categoryId"
+  `;
+
+  return new Map(grouped.map((row) => [row.categoryId, row.amount ?? 0]));
 }
 
 export async function listExpenses(
@@ -80,7 +200,7 @@ export async function createExpenseWithSplits(
     categoryId: string;
     date: Date;
     note?: string | null;
-    splits: { personId: string; amount: number }[];
+    splits: SplitInput[];
   },
 ) {
   const sum = sumFloats(data.splits.map((s) => s.amount));
@@ -92,6 +212,14 @@ export async function createExpenseWithSplits(
   }
 
   for (const s of data.splits) {
+    if (s.isSelf) {
+      continue;
+    }
+
+    if (!s.personId) {
+      throw new TRPCError({ code: "BAD_REQUEST", message: "Split participant is missing" });
+    }
+
     const person = await prisma.person.findFirst({ where: { id: s.personId, userId } });
     if (!person) {
       throw new TRPCError({ code: "NOT_FOUND", message: `Person ${s.personId} not found` });
@@ -113,8 +241,11 @@ export async function createExpenseWithSplits(
         note: data.note ?? undefined,
         splits: {
           create: data.splits.map((s) => ({
-            personId: s.personId,
+            personId: s.personId ?? null,
+            name: s.name,
             amount: s.amount,
+            isSelf: s.isSelf ?? false,
+            isPaid: s.isPaid ?? false,
           })),
         },
       },

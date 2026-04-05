@@ -97,15 +97,19 @@ model Expense {
 }
 
 model ExpenseSplit {
-  id        String @id @default(cuid())
+  id        String  @id @default(cuid())
   expenseId String
-  personId  String
+  personId  String?
+  name      String
   amount    Float
+  isSelf    Boolean @default(false)
+  isPaid    Boolean @default(false)
 
   expense Expense @relation(fields: [expenseId], references: [id], onDelete: Cascade)
-  person  Person  @relation(fields: [personId], references: [id], onDelete: Cascade)
+  person  Person? @relation(fields: [personId], references: [id], onDelete: Cascade)
 
   @@index([expenseId])
+  @@index([personId])
 }
 
 model Person {

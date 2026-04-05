@@ -2,9 +2,10 @@
 
 import { useForm } from "react-hook-form";
 import { api } from "@/lib/trpc";
+import { InlineCreateCategory } from "@/components/dependencies/InlineCreateCategory";
 import { toast } from "sonner";
 
-type FormValues = {
+export type ExpenseFormValues = {
   amount: string;
   categoryId: string;
   date: string;
@@ -13,28 +14,47 @@ type FormValues = {
 
 export function ExpenseForm({
   onSuccess,
+  onCreated,
+  expenseId,
+  initialValues,
 }: {
   onSuccess?: () => void;
+  onCreated?: (expenseId: string) => void;
+  expenseId?: string;
+  initialValues?: ExpenseFormValues;
 }) {
   const utils = api.useUtils();
   const { data: categories } = api.category.list.useQuery();
+
   const create = api.expense.create.useMutation({
-    onSuccess: async () => {
+    onSuccess: async (expense) => {
       await utils.expense.list.invalidate();
       await utils.dashboard.summary.invalidate();
       toast.success("Expense saved");
+      onCreated?.(expense.id);
       onSuccess?.();
     },
-    onError: (e) => toast.error(e.message),
+    onError: (error) => toast.error(error.message),
   });
 
-  const { register, handleSubmit, reset } = useForm<FormValues>({
-    defaultValues: {
-      amount: "",
-      categoryId: "",
-      date: new Date().toISOString().slice(0, 10),
-      note: "",
+  const update = api.expense.update.useMutation({
+    onSuccess: async () => {
+      await utils.expense.list.invalidate();
+      await utils.dashboard.summary.invalidate();
+      toast.success("Expense updated");
+      onSuccess?.();
     },
+    onError: (error) => toast.error(error.message),
+  });
+
+  const { register, handleSubmit, reset, getValues } = useForm<ExpenseFormValues>({
+    defaultValues:
+      initialValues ?? {
+        amount: "",
+        categoryId: "",
+        date: new Date().toISOString().slice(0, 10),
+        note: "",
+      },
   });
 
   return (
@@ -50,6 +70,18 @@ export function ExpenseForm({
           toast.error("Pick a category");
           return;
         }
+
+        if (expenseId) {
+          update.mutate({
+            id: expenseId,
+            amount,
+            categoryId: values.categoryId,
+            date: new Date(values.date),
+            note: values.note || null,
+          });
+          return;
+        }
+
         create.mutate({
           amount,
           categoryId: values.categoryId,
@@ -65,7 +97,7 @@ export function ExpenseForm({
       })}
     >
       <div>
-        <label className="block text-xs text-[var(--muted)] mb-1">Amount</label>
+        <label className="mb-1 block text-xs text-[var(--muted)]">Amount</label>
         <input
           type="number"
           step="0.01"
@@ -73,41 +105,54 @@ export function ExpenseForm({
           {...register("amount", { required: true })}
         />
       </div>
+
       <div>
-        <label className="block text-xs text-[var(--muted)] mb-1">Category</label>
+        <label className="mb-1 block text-xs text-[var(--muted)]">Category</label>
         <select
           className="w-full rounded-md border border-[var(--border)] bg-[var(--bg)] px-3 py-2 text-sm"
           {...register("categoryId", { required: true })}
         >
-          <option value="">Select…</option>
-          {categories?.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.name} ({c.type})
+          <option value="">Select...</option>
+          {categories?.map((category) => (
+            <option key={category.id} value={category.id}>
+              {category.name}
             </option>
           ))}
         </select>
       </div>
+
+      <InlineCreateCategory
+        onCreated={(nextCategoryId) => {
+          reset({
+            ...getValues(),
+            categoryId: nextCategoryId,
+          });
+        }}
+      />
+
       <div>
-        <label className="block text-xs text-[var(--muted)] mb-1">Date</label>
+        <label className="mb-1 block text-xs text-[var(--muted)]">Date</label>
         <input
           type="date"
           className="w-full rounded-md border border-[var(--border)] bg-[var(--bg)] px-3 py-2 text-sm"
           {...register("date", { required: true })}
         />
       </div>
+
       <div>
-        <label className="block text-xs text-[var(--muted)] mb-1">Note</label>
+        <label className="mb-1 block text-xs text-[var(--muted)]">Note</label>
         <input
           className="w-full rounded-md border border-[var(--border)] bg-[var(--bg)] px-3 py-2 text-sm"
           {...register("note")}
         />
       </div>
+
       <button
         type="submit"
-        disabled={create.isPending}
+        disabled={create.isPending || update.isPending}
         className="w-full rounded-md bg-accent px-3 py-2 text-sm font-medium text-white hover:bg-accent-dim disabled:opacity-50"
       >
-        {create.isPending ? "Saving…" : "Save expense"}
+        {create.isPending || update.isPending ? "Saving..." : expenseId ? "Save changes" : "Save expense"}
       </button>
     </form>
   );

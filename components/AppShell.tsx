@@ -158,7 +158,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </aside>
 
       <main className="min-w-0 flex-1 px-3 py-4 sm:px-4 md:p-8 md:px-8 lg:mx-auto lg:max-w-6xl lg:w-full safe-pb">
-        {children}
+        <div className="motion-page">{children}</div>
       </main>
     </div>
   );

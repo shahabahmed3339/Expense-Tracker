@@ -6,7 +6,13 @@ export async function replaceExpenseSplits(
   prisma: PrismaClient,
   userId: string,
   expenseId: string,
-  splits: { personId: string; amount: number }[],
+  splits: {
+    personId?: string | null;
+    name: string;
+    amount: number;
+    isSelf?: boolean;
+    isPaid?: boolean;
+  }[],
 ) {
   const expense = await prisma.expense.findFirst({ where: { id: expenseId, userId } });
   if (!expense) throw new TRPCError({ code: "NOT_FOUND", message: "Expense not found" });
@@ -22,6 +28,14 @@ export async function replaceExpenseSplits(
   }
 
   for (const s of splits) {
+    if (s.isSelf) {
+      continue;
+    }
+
+    if (!s.personId) {
+      throw new TRPCError({ code: "BAD_REQUEST", message: "Split participant is missing" });
+    }
+
     const person = await prisma.person.findFirst({ where: { id: s.personId, userId } });
     if (!person) {
       throw new TRPCError({ code: "NOT_FOUND", message: `Person ${s.personId} not found` });
@@ -43,8 +57,11 @@ export async function replaceExpenseSplits(
     await tx.expenseSplit.createMany({
       data: splits.map((s) => ({
         expenseId,
-        personId: s.personId,
+        personId: s.personId ?? null,
+        name: s.name,
         amount: s.amount,
+        isSelf: s.isSelf ?? false,
+        isPaid: s.isPaid ?? false,
       })),
     });
     const updated = await tx.expense.findUnique({

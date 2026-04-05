@@ -6,6 +6,7 @@ import { useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { Loader } from "@/components/Loader";
 
 export default function SignupPage() {
   const router = useRouter();
@@ -22,7 +23,9 @@ export default function SignupPage() {
   if (status === "loading" || status === "authenticated") {
     return (
       <div className="exp-auth-root">
-        <p className="exp-auth-loading">Loading…</p>
+        <div className="exp-auth-loading">
+          <Loader />
+        </div>
       </div>
     );
   }
@@ -109,7 +112,7 @@ export default function SignupPage() {
                   toast.error(body.error ?? "Signup failed");
                   return;
                 }
-                toast.success("Account created — sign in");
+                toast.success("Account created - sign in");
                 router.push("/login");
               } catch {
                 toast.error("Network error");
@@ -118,7 +121,7 @@ export default function SignupPage() {
               }
             }}
           >
-            {pending ? "Creating…" : "Create account"}
+            {pending ? "Creating..." : "Create account"}
           </button>
         </div>
 
