@@ -110,15 +110,15 @@ function NavLinks({
                 aria-label={l.label}
                 title={l.label}
                 className={`motion-control block rounded-md px-3 py-2.5 text-sm transition-all duration-400 ease-[cubic-bezier(0.22,1,0.36,1)] md:py-2 ${active
-                    ? "bg-[var(--nav-active-bg)] font-medium text-accent"
-                    : "text-[var(--muted)] hover:bg-[var(--nav-hover)] hover:text-[var(--fg)]"
+                  ? "bg-[var(--nav-active-bg)] font-medium text-accent"
+                  : "text-[var(--muted)] hover:bg-[var(--nav-hover)] hover:text-[var(--fg)]"
                   } ${collapsed ? "text-center" : ""}`}
               >
                 <span className={`flex items-center ${collapsed ? "justify-center" : "gap-3"}`}>
                   <span
                     className={`inline-flex items-center justify-center rounded-full text-xs font-semibold transition-all duration-400 ease-[cubic-bezier(0.22,1,0.36,1)] ${collapsed
-                        ? "h-7 w-7 scale-100 border border-[var(--border)]/70 opacity-100"
-                        : "h-0 w-0 scale-75 border border-transparent opacity-0"
+                      ? "h-7 w-7 scale-100 border border-[var(--border)]/70 opacity-100"
+                      : "h-0 w-0 scale-75 border border-transparent opacity-0"
                       }`}
                     aria-hidden={!collapsed}
                   >
@@ -182,14 +182,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <div className="min-h-[100dvh] flex flex-col md:flex-row">
-      {/* Mobile header */}
-      <header className="motion-shell sticky top-0 z-30 flex shrink-0 items-center justify-between gap-2 border-b border-[var(--border)] bg-[var(--card)] px-3 py-2.5 md:hidden safe-pt">
-        <span className="min-w-0 truncate text-base font-semibold tracking-tight">Expense Tracker</span>
+    <div className="min-h-[100dvh] flex flex-col">
+      <header className="motion-shell sticky top-0 z-30 flex shrink-0 items-center justify-between gap-2 border-b border-[var(--border)] bg-[var(--card)] px-4 py-3 safe-pt">
+        <span className="min-w-0 truncate whitespace-nowrap font-semibold tracking-tight text-lg">Expense Tracker</span>
         <div className="flex shrink-0 items-center gap-2">
-          <ThemeToggle />
-          <SignOutButton onClick={requestLogout} />
-          <SidebarToggleButton mobile open={mobileOpen} onClick={() => setMobileOpen((current) => !current)} />
+          <ThemeToggle size="sm" />
+          <SignOutButton size="sm" onClick={requestLogout} />
+          <div className="md:hidden">
+            <SidebarToggleButton size="sm" mobile open={mobileOpen} onClick={() => setMobileOpen((current) => !current)} />
+          </div>
         </div>
       </header>
 
@@ -210,12 +211,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         aria-modal="true"
         aria-label="Navigation"
       >
-        <div className="flex items-center justify-between gap-2 border-b border-[var(--border)] px-3 py-2.5 safe-pt">
+        <div className="flex items-center justify-between gap-2 border-b border-[var(--border)] px-4 py-3 safe-pt">
           <span className="font-semibold">Menu</span>
           <div className="flex items-center gap-2">
-            <ThemeToggle />
-            <SignOutButton onClick={requestLogout} />
-            <SidebarToggleButton mobile open={mobileOpen} onClick={() => setMobileOpen(false)} />
+            <ThemeToggle size="sm" />
+            <SignOutButton size="sm" onClick={requestLogout} />
+            <SidebarToggleButton size="sm" mobile open={mobileOpen} onClick={() => setMobileOpen(false)} />
           </div>
         </div>
         <div className="min-h-0 flex-1 overflow-y-auto">
@@ -223,36 +224,24 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </div>
       </aside>
 
-      {/* Desktop sidebar */}
-      <aside
-        className={`motion-shell hidden shrink-0 flex-col border-b-0 border-r border-[var(--border)] bg-[var(--card)] transition-[width] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] md:flex ${desktopSidebarOpen ? "w-80" : "w-20"
-          }`}
-      >
-        <div
-          className={`p-4 pb-2 ${desktopSidebarOpen ? "flex items-center justify-between gap-2" : "flex flex-col items-center"
+      <div className="flex min-h-0 flex-1 md:flex-row">
+        {/* Desktop sidebar */}
+        <aside
+          className={`motion-shell hidden shrink-0 flex-col border-b-0 border-r border-[var(--border)] bg-[var(--card)] transition-[width] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] md:flex ${desktopSidebarOpen ? "w-80" : "w-20"
             }`}
         >
-          <div className={`flex ${desktopSidebarOpen ? "items-center gap-2" : "flex-col items-center gap-2"}`}>
+          <div className={`border-b border-[var(--border)] py-3 ${desktopSidebarOpen ? "flex justify-start px-6" : "flex justify-center px-3"}`}>
             <SidebarToggleButton open={desktopSidebarOpen} size="sm" onClick={() => setDesktopSidebarOpen((current) => !current)} />
-            <ThemeToggle size="sm" />
-            <SignOutButton size="sm" onClick={requestLogout} />
           </div>
-          <div
-            className={`overflow-hidden whitespace-nowrap font-semibold tracking-tight transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] ${desktopSidebarOpen ? "max-w-[12rem] translate-x-0 text-lg opacity-100 delay-75" : "max-w-0 -translate-x-3 text-base opacity-0"
-              }`}
-            aria-hidden={!desktopSidebarOpen}
-          >
-            Expense Tracker
+          <div className="min-h-0 flex-1 overflow-y-auto pt-3">
+            <NavLinks pathname={pathname} collapsed={!desktopSidebarOpen} />
           </div>
-        </div>
-        <div className="min-h-0 flex-1 overflow-y-auto">
-          <NavLinks pathname={pathname} collapsed={!desktopSidebarOpen} />
-        </div>
-      </aside>
+        </aside>
 
-      <main className="min-w-0 flex-1 px-3 py-4 sm:px-4 md:p-8 md:px-8 lg:mx-auto lg:max-w-6xl lg:w-full safe-pb">
-        <div className="motion-page">{children}</div>
-      </main>
+        <main className="min-w-0 flex-1 px-3 py-4 sm:px-4 md:p-8 md:px-8 lg:mx-auto lg:max-w-6xl lg:w-full safe-pb">
+          <div className="motion-page">{children}</div>
+        </main>
+      </div>
 
       <ConfirmDialog
         open={logoutOpen}
