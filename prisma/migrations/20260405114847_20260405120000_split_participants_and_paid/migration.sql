@@ -1,2 +1,1 @@
--- AlterTable
-ALTER TABLE "ExpenseSplit" ALTER COLUMN "name" DROP DEFAULT;
+-- No-op migration kept only to preserve local migration history ordering.

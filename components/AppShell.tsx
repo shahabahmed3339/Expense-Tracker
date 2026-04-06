@@ -2,8 +2,9 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { signOut } from "next-auth/react";
+import { signOut, useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
+import { Avatar } from "@/components/Avatar";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 
@@ -143,6 +144,7 @@ function NavLinks({
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const { data: session } = useSession();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [desktopSidebarOpen, setDesktopSidebarOpen] = useState(true);
   const [logoutOpen, setLogoutOpen] = useState(false);
@@ -186,6 +188,18 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <header className="motion-shell sticky top-0 z-30 flex shrink-0 items-center justify-between gap-2 border-b border-[var(--border)] bg-[var(--card)] px-4 py-3 safe-pt">
         <span className="min-w-0 truncate whitespace-nowrap font-semibold tracking-tight text-lg">Expense Tracker</span>
         <div className="flex shrink-0 items-center gap-2">
+          <Link
+            href="/profile"
+            className="motion-control inline-flex items-center gap-2 rounded-lg border border-[var(--border)] bg-[var(--card)] px-2 py-1.5 hover:bg-[var(--nav-hover)]"
+            aria-label="Open profile"
+            title={session?.user?.name ? `${session.user.name} profile` : "Open profile"}
+          >
+            <Avatar name={session?.user?.name} image={session?.user?.image} size="sm" />
+            <span className="hidden max-w-36 truncate text-left text-xs md:block">
+              <span className="block text-[var(--fg)]">{session?.user?.name ?? "Profile"}</span>
+              <span className="block text-[var(--muted)]">{session?.user?.email ?? "Account settings"}</span>
+            </span>
+          </Link>
           <ThemeToggle size="sm" />
           <SignOutButton size="sm" onClick={requestLogout} />
           <div className="md:hidden">
@@ -214,6 +228,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <div className="flex items-center justify-between gap-2 border-b border-[var(--border)] px-4 py-3 safe-pt">
           <span className="font-semibold">Menu</span>
           <div className="flex items-center gap-2">
+            <Link
+              href="/profile"
+              className="motion-control inline-flex items-center gap-2 rounded-lg border border-[var(--border)] bg-[var(--card)] px-2 py-1.5 hover:bg-[var(--nav-hover)]"
+              aria-label="Open profile"
+              title={session?.user?.name ? `${session.user.name} profile` : "Open profile"}
+            >
+              <Avatar name={session?.user?.name} image={session?.user?.image} size="sm" />
+            </Link>
             <ThemeToggle size="sm" />
             <SignOutButton size="sm" onClick={requestLogout} />
             <SidebarToggleButton size="sm" mobile open={mobileOpen} onClick={() => setMobileOpen(false)} />

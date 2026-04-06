@@ -24,13 +24,16 @@ model User {
   emailVerified DateTime?
   image         String?
   passwordHash  String?
+  otpEnabled    Boolean   @default(false)
   createdAt     DateTime  @default(now())
 
-  accounts Account[]
+  accounts                Account[]
+  emailVerificationTokens EmailVerificationToken[]
   categories Category[]
   budgets    Budget[]
   expenses   Expense[]
   loans      Loan[]
+  loginOtpChallenges      LoginOtpChallenge[]
   people     Person[]
 }
 
@@ -149,4 +152,34 @@ model LoanTransaction {
   loan Loan @relation(fields: [loanId], references: [id], onDelete: Cascade)
 
   @@index([loanId])
+}
+
+model EmailVerificationToken {
+  id         String   @id @default(cuid())
+  userId     String
+  email      String
+  token      String   @unique
+  expiresAt  DateTime
+  consumedAt DateTime?
+  createdAt  DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, email])
+  @@index([expiresAt])
+}
+
+model LoginOtpChallenge {
+  id         String   @id @default(cuid())
+  userId     String
+  email      String
+  codeHash   String
+  expiresAt  DateTime
+  consumedAt DateTime?
+  createdAt  DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, email])
+  @@index([expiresAt])
 }

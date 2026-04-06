@@ -1,5 +1,6 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useState } from "react";
 import { api } from "@/lib/trpc";
 import { Modal } from "@/components/ui/Modal";
@@ -8,7 +9,15 @@ import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { EmptyState } from "@/components/EmptyState";
 import { Loader } from "@/components/Loader";
 import { ErrorState } from "@/components/ErrorState";
-import { ExpenseForm, type ExpenseFormValues } from "./components/ExpenseForm";
+import type { ExpenseFormValues } from "./components/ExpenseForm";
+
+const LazyExpenseForm = dynamic(
+  () => import("./components/ExpenseForm").then((mod) => mod.ExpenseForm),
+  {
+    ssr: false,
+    loading: () => <div className="flex min-h-40 items-center justify-center"><Loader /></div>,
+  },
+);
 
 export default function ExpensesPage() {
   const [open, setOpen] = useState(false);
@@ -98,7 +107,7 @@ export default function ExpensesPage() {
       )}
 
       <Modal open={open} onClose={() => setOpen(false)} title="New expense">
-        <ExpenseForm onSuccess={() => setOpen(false)} />
+        <LazyExpenseForm onSuccess={() => setOpen(false)} />
       </Modal>
 
       <Modal
@@ -107,7 +116,7 @@ export default function ExpensesPage() {
         title="Edit expense"
       >
         {editingExpense && (
-          <ExpenseForm
+          <LazyExpenseForm
             expenseId={editingExpense.id}
             initialValues={editingExpense.values}
             onSuccess={() => setEditingExpense(null)}

@@ -1,5 +1,6 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useMemo, useState } from "react";
 import { api } from "@/lib/trpc";
 import { equalSplitParts, sumFloats } from "@/lib/calculations/split";
@@ -9,8 +10,15 @@ import { InlineCreatePerson } from "@/components/dependencies/InlineCreatePerson
 import { EmptyState } from "@/components/EmptyState";
 import { Loader } from "@/components/Loader";
 import { ErrorState } from "@/components/ErrorState";
-import { ExpenseForm } from "../expenses/components/ExpenseForm";
 import { toast } from "sonner";
+
+const LazyExpenseForm = dynamic(
+  () => import("../expenses/components/ExpenseForm").then((mod) => mod.ExpenseForm),
+  {
+    ssr: false,
+    loading: () => <div className="flex min-h-40 items-center justify-center"><Loader /></div>,
+  },
+);
 
 const SELF_KEY = "__self__";
 
@@ -573,7 +581,7 @@ export default function SplitsPage() {
       </Modal>
 
       <Modal open={expenseOpen} onClose={() => setExpenseOpen(false)} title="New expense">
-        <ExpenseForm
+        <LazyExpenseForm
           onSuccess={() => setExpenseOpen(false)}
           onCreated={(nextExpenseId) => {
             setExpenseId(nextExpenseId);

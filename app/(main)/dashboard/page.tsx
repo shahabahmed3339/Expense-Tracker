@@ -1,9 +1,21 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { api } from "@/lib/trpc";
-import { MultiChart } from "@/components/Charts";
 import { Loader } from "@/components/Loader";
 import { ErrorState } from "@/components/ErrorState";
+
+const LazyMultiChart = dynamic(
+  () => import("@/components/Charts").then((mod) => mod.MultiChart),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="flex h-56 items-center justify-center sm:h-64 md:h-72">
+        <Loader />
+      </div>
+    ),
+  },
+);
 
 function StatCard({
   label,
@@ -88,7 +100,7 @@ export default function DashboardPage() {
       <div className="grid gap-6 xl:grid-cols-[1.5fr_1fr]">
         <div className="motion-card min-w-0 rounded-xl border border-[var(--border)] bg-[var(--card)] p-4 overflow-x-auto">
           <h2 className="mb-4 text-sm font-medium text-[var(--muted)]">Expense trend</h2>
-          <MultiChart data={chartData} />
+          <LazyMultiChart data={chartData} />
         </div>
 
         <div className="motion-card rounded-xl border border-[var(--border)] bg-[var(--card)] p-4">

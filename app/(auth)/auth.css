@@ -84,6 +84,10 @@
   margin-bottom: 1rem;
 }
 
+.exp-auth-input-wrap {
+  position: relative;
+}
+
 .exp-auth-label {
   display: block;
   margin-bottom: 0.45rem;
@@ -116,6 +120,63 @@
   transition:
     border-color 0.15s ease,
     box-shadow 0.15s ease;
+}
+
+.exp-auth-input-with-action {
+  padding-right: 3.25rem;
+}
+
+.exp-auth-input-action {
+  position: absolute;
+  top: 50%;
+  right: 0.5rem;
+  transform: translateY(-50%);
+  border: 0;
+  background: transparent;
+  color: var(--auth-text);
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 0.35rem 0.5rem;
+  border-radius: 0.45rem;
+}
+
+.exp-auth-input-action:hover {
+  background: var(--auth-secondary-hover);
+}
+
+.exp-auth-helper {
+  margin-top: 0.4rem;
+  font-size: 0.78rem;
+  color: var(--auth-text);
+}
+
+.exp-auth-helper-error {
+  color: #ef4444;
+}
+
+.exp-auth-password-list {
+  margin: 0.6rem 0 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 0.35rem;
+}
+
+.exp-auth-password-item {
+  font-size: 0.78rem;
+  color: var(--auth-text);
+}
+
+.exp-auth-password-item[data-pass="true"] {
+  color: #22c55e;
+}
+
+.exp-auth-notice {
+  margin-bottom: 1rem;
+  padding: 0.9rem 1rem;
+  border-radius: 0.75rem;
+  border: 1px solid var(--auth-card-border);
+  background: color-mix(in srgb, var(--auth-card-bg) 78%, transparent);
 }
 
 .exp-auth-input:hover {
