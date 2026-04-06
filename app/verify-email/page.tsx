@@ -5,11 +5,17 @@ import { useEffect, useState } from "react";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Loader } from "@/components/Loader";
 
-function VerifyEmailClient({ token }: { token: string | null }) {
+function VerifyEmailClient({ token }: { token: string | null | undefined }) {
   const [state, setState] = useState<"loading" | "success" | "error">("loading");
   const [message, setMessage] = useState("Verifying your email...");
 
   useEffect(() => {
+    if (token === undefined) {
+      setState("loading");
+      setMessage("Verifying your email...");
+      return;
+    }
+
     if (!token) {
       setState("error");
       setMessage("Verification token is missing.");
@@ -50,14 +56,17 @@ function VerifyEmailClient({ token }: { token: string | null }) {
       <div className="exp-auth-card">
         <h1 className="exp-auth-title">Email verification</h1>
         <p className="exp-auth-sub">{message}</p>
-        {state === "loading" ? <Loader /> : null}
-        {state !== "loading" ? (
-          <p className="exp-auth-footer">
-            <Link href="/login" aria-label="Go to sign in page" title="Sign in">
+        {state === "loading" ? (
+          <div className="exp-auth-loading">
+            <Loader />
+          </div>
+        ) : (
+          <div className="exp-auth-actions">
+            <Link className="exp-auth-primary" href="/login" aria-label="Go to sign in page" title="Sign in">
               Go to sign in
             </Link>
-          </p>
-        ) : null}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -68,7 +77,7 @@ export default function VerifyEmailPage({
 }: {
   searchParams: Promise<{ token?: string }>;
 }) {
-  const [token, setToken] = useState<string | null>(null);
+  const [token, setToken] = useState<string | null | undefined>(undefined);
 
   useEffect(() => {
     void searchParams.then((params) => setToken(params.token ?? null));

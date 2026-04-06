@@ -258,6 +258,17 @@
   border-color: var(--auth-input-border-hover);
 }
 
+.exp-auth-button-content {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55rem;
+}
+
+.exp-auth-button-content .spinner {
+  border-top-color: currentColor;
+}
+
 .exp-auth-footer {
   margin-top: 1.5rem;
   padding-top: 1.25rem;

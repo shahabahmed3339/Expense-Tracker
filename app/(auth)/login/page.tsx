@@ -19,6 +19,7 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [pending, setPending] = useState(false);
   const [resending, setResending] = useState(false);
+  const [resendingVerification, setResendingVerification] = useState(false);
   const [unverifiedEmail, setUnverifiedEmail] = useState("");
   const [requiresOtp, setRequiresOtp] = useState(false);
   const [otpExpiresAt, setOtpExpiresAt] = useState<number | null>(null);
@@ -126,6 +127,7 @@ export default function LoginPage() {
   };
 
   const resendVerification = async () => {
+    setResendingVerification(true);
     try {
       const response = await fetch("/api/auth/resend-verification", {
         method: "POST",
@@ -140,6 +142,8 @@ export default function LoginPage() {
       toast.success("Verification email resent");
     } catch {
       toast.error("Network error");
+    } finally {
+      setResendingVerification(false);
     }
   };
 
@@ -187,8 +191,18 @@ export default function LoginPage() {
         {unverifiedEmail ? (
           <div className="exp-auth-notice">
             <p className="exp-auth-helper">Your email is not verified yet.</p>
-            <button type="button" className="exp-auth-secondary" onClick={resendVerification} aria-label="Resend verification email" title="Resend verification email">
-              Resend verification email
+            <button
+              type="button"
+              className="exp-auth-secondary"
+              onClick={resendVerification}
+              disabled={resendingVerification}
+              aria-label="Resend verification email"
+              title="Resend verification email"
+            >
+              <span className="exp-auth-button-content">
+                {resendingVerification ? <span className="spinner" aria-hidden="true" /> : null}
+                {resendingVerification ? "Sending..." : "Resend verification email"}
+              </span>
             </button>
           </div>
         ) : null}

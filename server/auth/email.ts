@@ -1,3 +1,5 @@
+import nodemailer from "nodemailer";
+
 type EmailPayload = {
   to: string;
   subject: string;
@@ -7,56 +9,57 @@ type EmailPayload = {
 
 export async function sendEmail(payload: EmailPayload) {
   const from = process.env.EMAIL_FROM;
-  const resendKey = process.env.RESEND_API_KEY;
+  const host = process.env.SMTP_HOST;
+  const port = Number(process.env.SMTP_PORT ?? "587");
+  const user = process.env.SMTP_USER;
+  const pass = process.env.SMTP_PASS;
+  const secure =
+    process.env.SMTP_SECURE === "true" ||
+    (!process.env.SMTP_SECURE && Number.isFinite(port) && port === 465);
 
-  if (resendKey && from) {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 15_000);
+  if (from && host && Number.isFinite(port) && user && pass) {
+    const transporter = nodemailer.createTransport({
+      host,
+      port,
+      secure,
+      auth: {
+        user,
+        pass,
+      },
+    });
 
     try {
-      console.info("[email:resend:start]", {
+      console.info("[email:smtp:start]", {
         from,
         to: payload.to,
         subject: payload.subject,
       });
 
-      const response = await fetch("https://api.resend.com/emails", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${resendKey}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          from,
-          to: payload.to,
-          subject: payload.subject,
-          html: payload.html,
-          text: payload.text,
-        }),
-        signal: controller.signal,
+      const response = await transporter.sendMail({
+        from,
+        to: payload.to,
+        subject: payload.subject,
+        html: payload.html,
+        text: payload.text,
       });
 
-      const responseText = await response.text();
-      console.info("[email:resend:response]", {
-        status: response.status,
-        statusText: response.statusText,
-        body: responseText,
+      console.info("[email:smtp:response]", {
+        messageId: response.messageId,
+        accepted: response.accepted,
+        rejected: response.rejected,
       });
-
-      if (!response.ok) {
-        throw new Error(`Failed to send email: ${response.status} ${response.statusText}`);
-      }
     } catch (error) {
-      console.error("[email:resend:error]", error);
+      console.error("[email:smtp:error]", error);
       throw error;
-    } finally {
-      clearTimeout(timeout);
     }
 
     return;
   }
 
-  console.info("[email:dev-fallback]", payload);
+  console.info("[email:dev-fallback]", {
+    reason: "Missing SMTP configuration. Set EMAIL_FROM, SMTP_HOST, SMTP_PORT, SMTP_USER, and SMTP_PASS.",
+    payload,
+  });
 }
 
 export function buildVerificationEmail(name: string | null | undefined, verificationUrl: string) {
