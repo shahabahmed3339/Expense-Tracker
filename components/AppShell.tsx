@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
-import { useEffect, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { Avatar } from "@/components/Avatar";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
@@ -17,35 +17,6 @@ const links = [
   { href: "/categories", label: "Categories" },
   { href: "/splits", label: "Splits" },
 ];
-
-function SignOutButton({
-  size = "default",
-  onClick,
-}: {
-  size?: "default" | "sm";
-  onClick: () => void;
-}) {
-  const sizeClass = size === "sm" ? "h-8 w-8" : "h-10 w-10";
-
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`motion-control inline-flex ${sizeClass} items-center justify-center rounded-lg border border-[var(--border)] bg-[var(--card)] text-[var(--fg)] transition-colors hover:bg-[var(--nav-hover)] hover:text-red-500 dark:hover:text-red-400`}
-      aria-label="Sign out"
-      title="Sign out"
-    >
-      <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-        <path
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth={2}
-          d="M16 17l5-5m0 0l-5-5m5 5H9m4 5v1a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2h5a2 2 0 012 2v1"
-        />
-      </svg>
-    </button>
-  );
-}
 
 function SidebarToggleButton({
   open,
@@ -78,6 +49,104 @@ function SidebarToggleButton({
   );
 }
 
+function AccountMenu({
+  name,
+  email,
+  image,
+  onLogout,
+}: {
+  name?: string | null;
+  email?: string | null;
+  image?: string | null;
+  onLogout: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const menuId = useId();
+  const displayName = name?.trim() || "Your profile";
+  const displayEmail = email?.trim() || "No email available";
+
+  useEffect(() => {
+    if (!open) return;
+
+    const handlePointerDown = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setOpen(false);
+      }
+    };
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setOpen(false);
+      }
+    };
+
+    window.addEventListener("mousedown", handlePointerDown);
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      window.removeEventListener("mousedown", handlePointerDown);
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [open]);
+
+  return (
+    <div ref={menuRef} className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen((current) => !current)}
+        className="motion-control inline-flex h-10 w-10 items-center justify-center rounded-full border border-[var(--border)] bg-[var(--card)] transition-colors hover:bg-[var(--nav-hover)]"
+        aria-label="Open account menu"
+        title={displayName}
+        aria-haspopup="menu"
+        aria-expanded={open}
+        aria-controls={menuId}
+      >
+        <Avatar name={name} image={image} size="sm" />
+      </button>
+
+      {open ? (
+        <div
+          id={menuId}
+          role="menu"
+          aria-label="Account menu"
+          className="absolute right-0 top-[calc(100%+0.75rem)] z-40 w-[min(22rem,calc(100vw-2rem))] overflow-hidden rounded-3xl border border-[var(--border)] bg-[var(--card)] p-4 shadow-[0_24px_80px_rgba(15,23,42,0.18)]"
+        >
+          <div className="rounded-2xl bg-[var(--nav-hover)]/60 px-4 py-5 text-center">
+            <div className="flex justify-center">
+              <Avatar name={name} image={image} size="lg" />
+            </div>
+            <p className="mt-3 text-base font-semibold text-[var(--fg)]">{displayName}</p>
+            <p className="mt-1 break-all text-sm text-[var(--muted)]">{displayEmail}</p>
+          </div>
+
+          <div className="mt-4 flex flex-col gap-2">
+            <Link
+              href="/profile"
+              role="menuitem"
+              onClick={() => setOpen(false)}
+              className="inline-flex w-full items-center justify-center rounded-xl border border-[var(--border)] px-4 py-2.5 text-sm font-medium text-[var(--fg)] transition-colors hover:bg-[var(--nav-hover)]"
+            >
+              Profile
+            </Link>
+            <button
+              type="button"
+              role="menuitem"
+              onClick={() => {
+                setOpen(false);
+                onLogout();
+              }}
+              className="inline-flex w-full items-center justify-center rounded-xl bg-red-500 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-red-600"
+            >
+              Logout
+            </button>
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 function NavLinks({
   onNavigate,
   pathname,
@@ -102,7 +171,7 @@ function NavLinks({
           return (
             <li
               key={l.href}
-              className={`transition-all duration-400 ease-[cubic-bezier(0.22,1,0.36,1)] ${animate ? (isOpen ? "translate-x-0 opacity-100" : "translate-x-4 opacity-0") : ""}`}
+              className={`transition-all duration-400 ease-[cubic-bezier(0.22,1,0.36,1)] ${animate ? (isOpen ? "translate-x-0 opacity-100" : "-translate-x-4 opacity-0") : ""}`}
               style={animate ? { transitionDelay: isOpen ? `${80 + index * 35}ms` : "0ms" } : undefined}
             >
               <Link
@@ -126,7 +195,7 @@ function NavLinks({
                     {shortLabel}
                   </span>
                   <span
-                    className={`overflow-hidden whitespace-nowrap transition-all duration-400 ease-[cubic-bezier(0.22,1,0.36,1)] ${collapsed ? "max-w-0 -translate-x-2 opacity-0" : "max-w-[10rem] translate-x-0 opacity-100"
+                    className={`overflow-hidden whitespace-nowrap transition-all duration-400 ease-[cubic-bezier(0.22,1,0.36,1)] ${collapsed ? "max-w-0 -translate-x-2 opacity-0" : "h-7 max-w-[10rem] translate-x-0 translate-y-1 opacity-100"
                       }`}
                     aria-hidden={collapsed}
                   >
@@ -186,60 +255,46 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-[100dvh] flex flex-col">
       <header className="motion-shell sticky top-0 z-30 flex shrink-0 items-center justify-between gap-2 border-b border-[var(--border)] bg-[var(--card)] px-4 py-3 safe-pt">
-        <span className="min-w-0 truncate whitespace-nowrap font-semibold tracking-tight text-lg">Expense Tracker</span>
-        <div className="flex shrink-0 items-center gap-2">
-          <Link
-            href="/profile"
-            className="motion-control inline-flex items-center gap-2 rounded-lg border border-[var(--border)] bg-[var(--card)] px-2 py-1.5 hover:bg-[var(--nav-hover)]"
-            aria-label="Open profile"
-            title={session?.user?.name ? `${session.user.name} profile` : "Open profile"}
-          >
-            <Avatar name={session?.user?.name} image={session?.user?.image} size="sm" />
-            <span className="hidden max-w-36 truncate text-left text-xs md:block">
-              <span className="block text-[var(--fg)]">{session?.user?.name ?? "Profile"}</span>
-              <span className="block text-[var(--muted)]">{session?.user?.email ?? "Account settings"}</span>
-            </span>
-          </Link>
-          <ThemeToggle size="sm" />
-          <SignOutButton size="sm" onClick={requestLogout} />
+        <div className="flex items-center gap-2">
+          <div className="max-md:hidden">
+            <SidebarToggleButton size="sm" open={desktopSidebarOpen} onClick={() => setDesktopSidebarOpen((current) => !current)} />
+          </div>
           <div className="md:hidden">
             <SidebarToggleButton size="sm" mobile open={mobileOpen} onClick={() => setMobileOpen((current) => !current)} />
           </div>
+          <span className="min-w-0 truncate whitespace-nowrap font-semibold tracking-tight text-lg">Expense Tracker</span>
+        </div>
+        <div className="flex shrink-0 items-center gap-2">
+          <ThemeToggle size="sm" />
+          <AccountMenu
+            name={session?.user?.name}
+            email={session?.user?.email}
+            image={session?.user?.image}
+            onLogout={requestLogout}
+          />
         </div>
       </header>
 
       {/* Mobile drawer */}
       <button
         type="button"
-        className={`fixed inset-0 z-40 bg-[var(--overlay)] transition-opacity duration-300 ease-out md:hidden ${mobileOpen ? "pointer-events-auto opacity-100" : "pointer-events-none opacity-0"
-          }`}
+        className={`drawer-backdrop fixed inset-0 z-40 bg-[var(--overlay)] md:hidden ${mobileOpen ? "open" : ""}`}
         aria-label="Close menu"
         title="Close menu"
         onClick={() => setMobileOpen(false)}
         tabIndex={mobileOpen ? 0 : -1}
       />
       <aside
-        className={`motion-shell fixed inset-y-0 right-0 z-50 flex w-[min(18rem,88vw)] flex-col border-l border-[var(--border)] bg-[var(--card)] shadow-xl transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] will-change-transform md:hidden safe-pb ${mobileOpen ? "translate-x-0 opacity-100" : "pointer-events-none translate-x-full opacity-0"
-          }`}
+        className={`drawer-panel motion-shell fixed inset-y-0 left-0 z-50 flex w-[min(18rem,88vw)] flex-col border-r border-[var(--border)] bg-[var(--card)] shadow-xl md:hidden safe-pb ${mobileOpen ? "open" : ""}`}
         role="dialog"
         aria-modal="true"
         aria-label="Navigation"
       >
         <div className="flex items-center justify-between gap-2 border-b border-[var(--border)] px-4 py-3 safe-pt">
-          <span className="font-semibold">Menu</span>
           <div className="flex items-center gap-2">
-            <Link
-              href="/profile"
-              className="motion-control inline-flex items-center gap-2 rounded-lg border border-[var(--border)] bg-[var(--card)] px-2 py-1.5 hover:bg-[var(--nav-hover)]"
-              aria-label="Open profile"
-              title={session?.user?.name ? `${session.user.name} profile` : "Open profile"}
-            >
-              <Avatar name={session?.user?.name} image={session?.user?.image} size="sm" />
-            </Link>
-            <ThemeToggle size="sm" />
-            <SignOutButton size="sm" onClick={requestLogout} />
             <SidebarToggleButton size="sm" mobile open={mobileOpen} onClick={() => setMobileOpen(false)} />
           </div>
+          <span className="font-semibold">Menu</span>
         </div>
         <div className="min-h-0 flex-1 overflow-y-auto">
           <NavLinks pathname={pathname} onNavigate={() => setMobileOpen(false)} animate isOpen={mobileOpen} />
@@ -252,9 +307,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           className={`motion-shell hidden shrink-0 flex-col border-b-0 border-r border-[var(--border)] bg-[var(--card)] transition-[width] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] md:flex ${desktopSidebarOpen ? "w-80" : "w-20"
             }`}
         >
-          <div className={`border-b border-[var(--border)] py-3 ${desktopSidebarOpen ? "flex justify-start px-6" : "flex justify-center px-3"}`}>
-            <SidebarToggleButton open={desktopSidebarOpen} size="sm" onClick={() => setDesktopSidebarOpen((current) => !current)} />
-          </div>
           <div className="min-h-0 flex-1 overflow-y-auto pt-3">
             <NavLinks pathname={pathname} collapsed={!desktopSidebarOpen} />
           </div>

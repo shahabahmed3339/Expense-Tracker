@@ -13,6 +13,7 @@ import {
   isRemoteImageUrl,
   resizeProfileImageToDataUrl,
 } from "@/lib/profile/image";
+import { getPasswordValidationMessage, validatePassword } from "@/lib/auth/password";
 import { toast } from "sonner";
 
 export default function ProfilePage() {
@@ -32,6 +33,9 @@ export default function ProfilePage() {
   const [newPassword, setNewPassword] = useState("");
   const [deletePassword, setDeletePassword] = useState("");
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showDeletePassword, setShowDeletePassword] = useState(false);
 
   useEffect(() => {
     if (!profile) return;
@@ -40,9 +44,11 @@ export default function ProfilePage() {
     setEmail(profile.email);
     setImageValue(profile.image ?? "");
     setImageUrlInput(profile.image && isRemoteImageUrl(profile.image) ? profile.image : "");
-    setUploadedImageLabel(profile.image && isProfileImageDataUrl(profile.image) ? "Stored uploaded image" : "");
+    if (uploadedImageLabel === "" || uploadedImageLabel === "Stored uploaded image") {
+      setUploadedImageLabel(profile.image && isProfileImageDataUrl(profile.image) ? "Stored uploaded image" : "");
+    }
     setVerificationEmail(profile.emailVerified ? "" : profile.email);
-  }, [profile]);
+  }, [profile, uploadedImageLabel]);
 
   const updateProfile = api.profile.update.useMutation({
     onSuccess: async (nextProfile) => {
@@ -93,16 +99,20 @@ export default function ProfilePage() {
   });
 
   async function handleImageUpload(file: File | null) {
-    if (!file) return;
+    if (!file) {
+      setUploadedImageLabel("");
+      return;
+    }
 
     setIsUploadingImage(true);
     try {
       const dataUrl = await resizeProfileImageToDataUrl(file);
       setImageValue(dataUrl);
       setImageUrlInput("");
-      setUploadedImageLabel(file.name);
+      // uploadedImageLabel is already set in onChange
       toast.success("Image prepared for saving");
     } catch (uploadError) {
+      setUploadedImageLabel("");
       toast.error(uploadError instanceof Error ? uploadError.message : "Unable to process image");
     } finally {
       setIsUploadingImage(false);
@@ -221,19 +231,36 @@ export default function ProfilePage() {
 
             <div>
               <label className="mb-1 block text-xs text-[var(--muted)]">Or upload image</label>
-              <input
-                type="file"
-                accept="image/png,image/jpeg,image/webp"
-                className="block w-full text-sm file:mr-3 file:rounded-md file:border-0 file:bg-accent file:px-3 file:py-2 file:text-sm file:font-medium file:text-white hover:file:bg-accent-dim"
-                onChange={(event) => {
-                  void handleImageUpload(event.target.files?.[0] ?? null);
-                  event.currentTarget.value = "";
-                }}
-              />
+              <div className="flex items-center gap-2">
+                <input
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp"
+                  className="hidden"
+                  id="profile-image-upload"
+                  onChange={(event) => {
+                    const file = event.target.files?.[0] ?? null;
+                    if (file) {
+                      setUploadedImageLabel(file.name);
+                    }
+                    void handleImageUpload(file);
+                    event.currentTarget.value = "";
+                  }}
+                />
+                <label
+                  htmlFor="profile-image-upload"
+                  className="inline-flex cursor-pointer items-center rounded-md border border-[var(--border)] bg-[var(--card)] px-3 py-2 text-sm hover:bg-[var(--nav-hover)]"
+                >
+                  Choose file
+                </label>
+                {uploadedImageLabel ? (
+                  <span className="text-xs text-[var(--muted)]">Selected: {uploadedImageLabel}</span>
+                ) : (
+                  <span className="text-xs text-[var(--muted)]">No file chosen</span>
+                )}
+              </div>
               <p className="mt-1 text-xs text-[var(--muted)]">
                 Uploads are stored in the database as base64 and resized to fit within 100 x 100 pixels.
               </p>
-              {uploadedImageLabel ? <p className="mt-1 text-xs text-[var(--muted)]">Selected upload: {uploadedImageLabel}</p> : null}
             </div>
 
             <div className="flex flex-wrap gap-2">
@@ -281,25 +308,78 @@ export default function ProfilePage() {
 
           <div>
             <label className="mb-1 block text-xs text-[var(--muted)]">Current password</label>
-            <input
-              type="password"
-              className="w-full rounded-md border border-[var(--border)] bg-[var(--bg)] px-3 py-2 text-sm"
-              value={currentPassword}
-              onChange={(event) => setCurrentPassword(event.target.value)}
-            />
+            <div className="relative">
+              <input
+                type={showCurrentPassword ? "text" : "password"}
+                className="w-full rounded-md border border-[var(--border)] bg-[var(--bg)] px-3 py-2 pr-16 text-sm"
+                value={currentPassword}
+                onChange={(event) => setCurrentPassword(event.target.value)}
+                autoComplete="off"
+              />
+              <button
+                type="button"
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-[var(--muted)] hover:text-[var(--fg)]"
+                onClick={() => setShowCurrentPassword((current) => !current)}
+                aria-label={showCurrentPassword ? "Hide password" : "Show password"}
+                title={showCurrentPassword ? "Hide password" : "Show password"}
+              >
+                {showCurrentPassword ? "Hide" : "Show"}
+              </button>
+            </div>
           </div>
           <div>
             <label className="mb-1 block text-xs text-[var(--muted)]">New password</label>
-            <input
-              type="password"
-              className="w-full rounded-md border border-[var(--border)] bg-[var(--bg)] px-3 py-2 text-sm"
-              value={newPassword}
-              onChange={(event) => setNewPassword(event.target.value)}
-            />
+            <div className="relative">
+              <input
+                type={showNewPassword ? "text" : "password"}
+                className="w-full rounded-md border border-[var(--border)] bg-[var(--bg)] px-3 py-2 pr-16 text-sm"
+                value={newPassword}
+                onChange={(event) => setNewPassword(event.target.value)}
+                autoComplete="new-password"
+              />
+              <button
+                type="button"
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-[var(--muted)] hover:text-[var(--fg)]"
+                onClick={() => setShowNewPassword((current) => !current)}
+                aria-label={showNewPassword ? "Hide password" : "Show password"}
+                title={showNewPassword ? "Hide password" : "Show password"}
+              >
+                {showNewPassword ? "Hide" : "Show"}
+              </button>
+            </div>
+            {newPassword && (
+              <ul className="mt-2 space-y-1">
+                <li className="text-xs" data-pass={validatePassword(newPassword).checks.minLength}>
+                  <span className="text-[var(--muted)]">✓</span> At least 8 characters
+                </li>
+                <li className="text-xs" data-pass={validatePassword(newPassword).checks.lowercase}>
+                  <span className="text-[var(--muted)]">✓</span> At least 1 lowercase letter
+                </li>
+                <li className="text-xs" data-pass={validatePassword(newPassword).checks.uppercase}>
+                  <span className="text-[var(--muted)]">✓</span> At least 1 uppercase letter
+                </li>
+                <li className="text-xs" data-pass={validatePassword(newPassword).checks.number}>
+                  <span className="text-[var(--muted)]">✓</span> At least 1 number
+                </li>
+                <li className="text-xs" data-pass={validatePassword(newPassword).checks.special}>
+                  <span className="text-[var(--muted)]">✓ Special character</span>
+                </li>
+              </ul>
+            )}
+            {newPassword && getPasswordValidationMessage(newPassword) && (
+              <p className="mt-2 text-xs text-red-500">{getPasswordValidationMessage(newPassword)}</p>
+            )}
           </div>
           <Button
-            onClick={() => changePassword.mutate({ currentPassword, newPassword })}
-            disabled={changePassword.isPending || !currentPassword || !newPassword}
+            onClick={() => {
+              const passwordError = getPasswordValidationMessage(newPassword);
+              if (passwordError) {
+                toast.error(passwordError);
+                return;
+              }
+              changePassword.mutate({ currentPassword, newPassword });
+            }}
+            disabled={changePassword.isPending || !currentPassword || !newPassword || !validatePassword(newPassword).isValid}
           >
             {changePassword.isPending ? "Saving..." : "Change password"}
           </Button>
@@ -313,13 +393,25 @@ export default function ProfilePage() {
         </div>
         <div>
           <label className="mb-1 block text-xs text-[var(--muted)]">Current password</label>
-          <input
-            type="password"
-            className="w-full rounded-md border border-[var(--border)] bg-[var(--bg)] px-3 py-2 text-sm"
-            value={deletePassword}
-            onChange={(event) => setDeletePassword(event.target.value)}
-            placeholder="Required for password accounts"
-          />
+          <div className="relative">
+            <input
+              type={showDeletePassword ? "text" : "password"}
+              className="w-full rounded-md border border-[var(--border)] bg-[var(--bg)] px-3 py-2 pr-16 text-sm"
+              value={deletePassword}
+              onChange={(event) => setDeletePassword(event.target.value)}
+              placeholder="Required for password accounts"
+              autoComplete="off"
+            />
+            <button
+              type="button"
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-[var(--muted)] hover:text-[var(--fg)]"
+              onClick={() => setShowDeletePassword((current) => !current)}
+              aria-label={showDeletePassword ? "Hide password" : "Show password"}
+              title={showDeletePassword ? "Hide password" : "Show password"}
+            >
+              {showDeletePassword ? "Hide" : "Show"}
+            </button>
+          </div>
         </div>
         <Button onClick={() => setDeleteOpen(true)}>Delete account</Button>
       </section>

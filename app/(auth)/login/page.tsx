@@ -26,7 +26,6 @@ export default function LoginPage() {
   const [otpSecondsLeft, setOtpSecondsLeft] = useState(0);
 
   useEffect(() => {
-    console.log(status)
     if (status === "authenticated") router.replace("/dashboard");
   }, [status, router]);
 
