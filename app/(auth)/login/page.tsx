@@ -44,15 +44,15 @@ export default function LoginPage() {
     return () => window.clearInterval(timer);
   }, [otpExpiresAt]);
 
-  if (status === "loading" || status === "authenticated") {
-    return (
-      <div className="exp-auth-root">
-        <div className="exp-auth-loading">
-          <Loader />
-        </div>
-      </div>
-    );
-  }
+  // if (status === "loading" || status === "authenticated") {
+  //   return (
+  //     <div className="exp-auth-root">
+  //       <div className="exp-auth-loading">
+  //         <Loader />
+  //       </div>
+  //     </div>
+  //   );
+  // }
 
   const startLogin = async () => {
     setPending(true);
