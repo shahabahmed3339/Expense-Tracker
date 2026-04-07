@@ -7,6 +7,7 @@ import Image from "next/image";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Loader } from "@/components/Loader";
 import { getPasswordValidationMessage, validatePassword } from "@/lib/auth/password";
+import { useKeyboardShortcuts } from "@/lib/hooks/useKeyboardShortcuts";
 import { toast } from "sonner";
 
 export default function SignupPage() {
@@ -40,6 +41,49 @@ export default function SignupPage() {
   const passwordState = validatePassword(password);
   const passwordError = getPasswordValidationMessage(password);
   const confirmError = confirmPassword && password !== confirmPassword ? "Passwords do not match." : null;
+
+  const handleSubmit = async () => {
+    const normalizedEmail = email.trim().toLowerCase();
+    if (passwordError) {
+      toast.error(passwordError);
+      return;
+    }
+    if (password !== confirmPassword) {
+      toast.error("Passwords do not match");
+      return;
+    }
+
+    setPending(true);
+    try {
+      const res = await fetch("/api/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: normalizedEmail,
+          password,
+          name: name.trim() || undefined,
+        }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        toast.error(body.error ?? "Signup failed");
+        return;
+      }
+      setRegisteredEmail(normalizedEmail);
+      toast.success("Account created. Please verify your email.");
+    } catch {
+      toast.error("Network error");
+    } finally {
+      setPending(false);
+    }
+  };
+
+  useKeyboardShortcuts([
+    {
+      key: "Enter",
+      action: handleSubmit,
+    },
+  ]);
 
   const resendVerification = async () => {
     setResendingVerification(true);
@@ -205,41 +249,7 @@ export default function SignupPage() {
                 className="exp-auth-primary"
                 aria-label={pending ? "Creating account" : "Create account"}
                 title={pending ? "Creating..." : "Create account"}
-                onClick={async () => {
-                  const normalizedEmail = email.trim().toLowerCase();
-                  if (passwordError) {
-                    toast.error(passwordError);
-                    return;
-                  }
-                  if (password !== confirmPassword) {
-                    toast.error("Passwords do not match");
-                    return;
-                  }
-
-                  setPending(true);
-                  try {
-                    const res = await fetch("/api/register", {
-                      method: "POST",
-                      headers: { "Content-Type": "application/json" },
-                      body: JSON.stringify({
-                        email: normalizedEmail,
-                        password,
-                        name: name.trim() || undefined,
-                      }),
-                    });
-                    const body = await res.json().catch(() => ({}));
-                    if (!res.ok) {
-                      toast.error(body.error ?? "Signup failed");
-                      return;
-                    }
-                    setRegisteredEmail(normalizedEmail);
-                    toast.success("Account created. Please verify your email.");
-                  } catch {
-                    toast.error("Network error");
-                  } finally {
-                    setPending(false);
-                  }
-                }}
+                onClick={handleSubmit}
               >
                 {pending ? "Creating..." : "Create account"}
               </button>

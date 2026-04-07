@@ -2,17 +2,20 @@
 
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
+import { useKeyboardShortcuts } from "@/lib/hooks/useKeyboardShortcuts";
 
 export function Modal({
   open,
   onClose,
   title,
   children,
+  onConfirm,
 }: {
   open: boolean;
   onClose: () => void;
   title?: string;
   children: React.ReactNode;
+  onConfirm?: () => void;
 }) {
   const [mounted, setMounted] = useState(false);
 
@@ -20,6 +23,17 @@ export function Modal({
     setMounted(true);
     return () => setMounted(false);
   }, []);
+
+  useKeyboardShortcuts([
+    {
+      key: "Escape",
+      action: onClose,
+    },
+    ...(onConfirm ? [{
+      key: "Enter",
+      action: onConfirm,
+    }] : []),
+  ]);
 
   if (!open || !mounted) return null;
 

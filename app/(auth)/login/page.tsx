@@ -8,6 +8,7 @@ import Image from "next/image";
 import { toast } from "sonner";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Loader } from "@/components/Loader";
+import { useKeyboardShortcuts } from "@/lib/hooks/useKeyboardShortcuts";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -45,16 +46,6 @@ export default function LoginPage() {
     const timer = window.setInterval(updateCountdown, 1000);
     return () => window.clearInterval(timer);
   }, [otpExpiresAt]);
-
-  if (status === "loading" || status === "authenticated") {
-    return (
-      <div className="exp-auth-root">
-        <div className="exp-auth-loading">
-          <Loader />
-        </div>
-      </div>
-    );
-  }
 
   const startLogin = async () => {
     setPending(true);
@@ -125,6 +116,13 @@ export default function LoginPage() {
       setPending(false);
     }
   };
+
+  useKeyboardShortcuts([
+    {
+      key: "Enter",
+      action: requiresOtp ? verifyOtpAndLogin : startLogin,
+    },
+  ]);
 
   const resendVerification = async () => {
     setResendingVerification(true);

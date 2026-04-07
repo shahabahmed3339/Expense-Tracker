@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
+import { useKeyboardShortcuts } from "@/lib/hooks/useKeyboardShortcuts";
 
 type ConfirmDialogProps = {
   open: boolean;
@@ -30,6 +31,17 @@ export function ConfirmDialog({
     setMounted(true);
     return () => setMounted(false);
   }, []);
+
+  useKeyboardShortcuts([
+    {
+      key: "Escape",
+      action: onClose,
+    },
+    {
+      key: "Enter",
+      action: onConfirm,
+    },
+  ]);
 
   if (!open || !mounted) return null;
 

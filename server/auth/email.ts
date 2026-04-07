@@ -82,7 +82,6 @@ function resolveLogoPath(): string | null {
 
 function getLogoSrc(): string {
   const logoPath = resolveLogoPath();
-  console.log('logoPath :', logoPath);
   if (logoPath) {
     return `cid:${logoCid}`;
   }
