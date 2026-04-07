@@ -2,6 +2,8 @@ import nodemailer from "nodemailer";
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
+import { google } from "googleapis";
+import { createReadStream } from "fs";
 
 type EmailPayload = {
   to: string;
@@ -51,6 +53,105 @@ export async function sendEmail(payload: EmailPayload) {
     }
 
     return;
+  }
+}
+
+// Alternative email sending method using Gmail API with service account
+export async function sendEmailViaGmailAPI(payload: EmailPayload) {
+  const clientEmail = process.env.GMAIL_CLIENT_EMAIL;
+  const privateKey = process.env.GMAIL_PRIVATE_KEY;
+  const projectId = process.env.GMAIL_PROJECT_ID;
+  const from = process.env.EMAIL_FROM;
+
+  if (!clientEmail || !privateKey || !projectId || !from) {
+    throw new Error(
+      "Gmail API configuration missing: GMAIL_CLIENT_EMAIL, GMAIL_PRIVATE_KEY, GMAIL_PROJECT_ID, EMAIL_FROM"
+    );
+  }
+
+  try {
+    const auth = new google.auth.JWT({
+      email: clientEmail,
+      key: privateKey.replace(/\\n/g, "\n"),
+      scopes: ["https://www.googleapis.com/auth/gmail.send"],
+    });
+
+    const gmail = google.gmail({ version: "v1", auth });
+
+    // Build the email message
+    let emailContent = [
+      `From: ${from}`,
+      `To: ${payload.to}`,
+      `Subject: ${payload.subject}`,
+      'MIME-Version: 1.0',
+      'Content-Type: multipart/alternative; boundary="boundary123"',
+      '',
+      '--boundary123',
+      'Content-Type: text/plain; charset="UTF-8"',
+      'Content-Transfer-Encoding: 7bit',
+      '',
+      payload.text,
+      '',
+      '--boundary123',
+      'Content-Type: text/html; charset="UTF-8"',
+      'Content-Transfer-Encoding: 7bit',
+      '',
+      payload.html,
+      '',
+      '--boundary123--',
+    ].join("\r\n");
+
+    // Handle attachments if provided
+    if (payload.attachments && payload.attachments.length > 0) {
+      const boundary = "boundary456";
+      const lines = [
+        `From: ${from}`,
+        `To: ${payload.to}`,
+        `Subject: ${payload.subject}`,
+        'MIME-Version: 1.0',
+        `Content-Type: multipart/mixed; boundary="${boundary}"`,
+        '',
+        `--${boundary}`,
+        'Content-Type: text/html; charset="UTF-8"',
+        'Content-Transfer-Encoding: 7bit',
+        '',
+        payload.html,
+        '',
+      ];
+
+      for (const attachment of payload.attachments) {
+        const fileContent = fs.readFileSync(attachment.path);
+        const base64Content = fileContent.toString("base64");
+        lines.push(`--${boundary}`);
+        lines.push(`Content-Type: ${attachment.contentType}`);
+        lines.push('Content-Transfer-Encoding: base64');
+        lines.push(`Content-Disposition: attachment; filename="${attachment.filename}"`);
+        lines.push(`Content-ID: <${attachment.cid}>`);
+        lines.push('');
+        lines.push(base64Content);
+        lines.push('');
+      }
+
+      lines.push(`--${boundary}--`);
+      emailContent = lines.join("\r\n");
+    }
+
+    const encodedMessage = Buffer.from(emailContent)
+      .toString("base64")
+      .replace(/\+/g, "-")
+      .replace(/\//g, "_")
+      .replace(/=+$/, "");
+
+    await gmail.users.messages.send({
+      userId: "me",
+      requestBody: {
+        raw: encodedMessage,
+      },
+    });
+
+    return;
+  } catch (error) {
+    throw error;
   }
 }
 
