@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
+import Image from "next/image";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Loader } from "@/components/Loader";
 import { getPasswordValidationMessage, validatePassword } from "@/lib/auth/password";
@@ -65,9 +66,14 @@ export default function SignupPage() {
     <div className="exp-auth-root">
       <div className="exp-auth-brand">
         <div className="exp-auth-brand-row">
-          <div className="exp-auth-brand-mark" aria-hidden>
-            E
-          </div>
+          <Image
+            src="/Logo.PNG"
+            alt="Expense Tracker Logo"
+            width={44}
+            height={44}
+            className="exp-auth-logo"
+            priority
+          />
           <ThemeToggle size="sm" />
         </div>
         <div className="exp-auth-brand-name">Expense Tracker</div>

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
 import { useEffect, useId, useRef, useState } from "react";
@@ -255,14 +256,22 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-[100dvh] flex flex-col">
       <header className="motion-shell sticky top-0 z-30 flex shrink-0 items-center justify-between gap-2 border-b border-[var(--border)] bg-[var(--card)] px-4 py-3 safe-pt">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
           <div className="max-md:hidden">
             <SidebarToggleButton size="sm" open={desktopSidebarOpen} onClick={() => setDesktopSidebarOpen((current) => !current)} />
           </div>
           <div className="md:hidden">
             <SidebarToggleButton size="sm" mobile open={mobileOpen} onClick={() => setMobileOpen((current) => !current)} />
           </div>
-          <span className="min-w-0 truncate whitespace-nowrap font-semibold tracking-tight text-lg">Expense Tracker</span>
+          <Image
+            src="/Logo.PNG"
+            alt="Expense Tracker"
+            width={32}
+            height={32}
+            className="h-8 w-8 rounded"
+            priority
+          />
+          <span className="hidden min-w-0 truncate whitespace-nowrap font-semibold tracking-tight text-lg sm:inline">Expense Tracker</span>
         </div>
         <div className="flex shrink-0 items-center gap-2">
           <ThemeToggle size="sm" />

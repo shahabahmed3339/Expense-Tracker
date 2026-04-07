@@ -1,10 +1,19 @@
 import nodemailer from "nodemailer";
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
 
 type EmailPayload = {
   to: string;
   subject: string;
   html: string;
   text: string;
+  attachments?: Array<{
+    filename: string;
+    path: string;
+    cid: string;
+    contentType: string;
+  }>;
 };
 
 export async function sendEmail(payload: EmailPayload) {
@@ -29,13 +38,13 @@ export async function sendEmail(payload: EmailPayload) {
     });
 
     try {
-
-      const response = await transporter.sendMail({
+      await transporter.sendMail({
         from,
         to: payload.to,
         subject: payload.subject,
         html: payload.html,
         text: payload.text,
+        attachments: payload.attachments,
       });
     } catch (error) {
       throw error;
@@ -43,6 +52,56 @@ export async function sendEmail(payload: EmailPayload) {
 
     return;
   }
+}
+
+const logoCid = "expense-tracker-logo";
+
+function resolveLogoPath(): string | null {
+  const currentFileDir = path.dirname(fileURLToPath(import.meta.url));
+  const possiblePaths = [
+    path.join(process.cwd(), "public", "Logo.PNG"),
+    path.join(process.cwd(), "public", "logo.png"),
+    path.join(process.cwd(), "..", "public", "Logo.PNG"),
+    path.join(process.cwd(), "..", "public", "logo.png"),
+    path.join(currentFileDir, "..", "..", "public", "Logo.PNG"),
+    path.join(currentFileDir, "..", "..", "public", "logo.png"),
+  ];
+
+  for (const logoPath of possiblePaths) {
+    try {
+      if (fs.existsSync(logoPath)) {
+        return logoPath;
+      }
+    } catch {
+      continue;
+    }
+  }
+
+  return null;
+}
+
+function getLogoSrc(): string {
+  const logoPath = resolveLogoPath();
+  console.log('logoPath :', logoPath);
+  if (logoPath) {
+    return `cid:${logoCid}`;
+  }
+
+  return "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTI4IiBoZWlnaHQ9IjEyOCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTI4IiBoZWlnaHQ9IjEyOCIgZmlsbD0iIzNiODJmNiIgcng9IjE2Ii8+PHRleHQgeD0iNjQiIHk9IjY0IiBmb250LXNpemU9IjY0IiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj5FPC90ZXh0Pjwvc3ZnPg==";
+}
+
+function getLogoAttachments() {
+  const logoPath = resolveLogoPath();
+  if (!logoPath) return undefined;
+
+  return [
+    {
+      filename: "Logo.PNG",
+      path: logoPath,
+      cid: logoCid,
+      contentType: "image/png",
+    },
+  ];
 }
 
 function buildEmailHtml(options: {
@@ -56,6 +115,7 @@ function buildEmailHtml(options: {
   note?: string;
   footerText: string;
 }) {
+  const logoSrc = getLogoSrc();
   const buttonStyle = [
     "display:inline-block",
     "width:100%",
@@ -126,15 +186,14 @@ function buildEmailHtml(options: {
       display: block;
       width: 4rem;
       height: 4rem;
-      line-height: 4rem;
       margin: 0 auto 0.75rem;
       border-radius: 1rem;
-      background: linear-gradient(145deg, #3b82f6 0%, #2563eb 100%);
-      color: #ffffff;
-      font-size: 1.75rem;
-      font-weight: 800;
-      text-align: center;
-      box-shadow: 0 14px 28px rgba(45, 115, 255, 0.18);
+    }
+    .brand-mark img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      border-radius: 1rem;
     }
     .brand-name {
       font-size: 0.85rem;
@@ -233,7 +292,9 @@ function buildEmailHtml(options: {
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0" class="container">
           <tr>
             <td class="brand">
-              <div class="brand-mark" aria-hidden="true">E</div>
+              <div class="brand-mark">
+                <img src="${logoSrc}" alt="Expense Tracker Logo" style="width: 100%; height: 100%; object-fit: contain; border-radius: 1rem; display: block;" />
+              </div>
               <div class="brand-name">Expense Tracker</div>
             </td>
           </tr>
@@ -274,6 +335,7 @@ export function buildVerificationEmail(name: string | null | undefined, verifica
       note: `Or copy and paste this link into your browser:<br><a href="${verificationUrl}" class="link">${verificationUrl}</a>`,
       footerText: "If you didn't create an account, you can safely ignore this email.",
     }),
+    attachments: getLogoAttachments(),
   };
 }
 
@@ -291,5 +353,6 @@ export function buildLoginOtpEmail(name: string | null | undefined, otpCode: str
       note: "This code expires in 2 minutes.",
       footerText: "If you didn't request this code, you can safely ignore this email.",
     }),
+    attachments: getLogoAttachments(),
   };
 }

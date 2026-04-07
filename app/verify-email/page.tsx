@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useEffect, useState } from "react";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Loader } from "@/components/Loader";
@@ -45,9 +46,14 @@ function VerifyEmailClient({ token }: { token: string | null | undefined }) {
     <div className="exp-auth-root">
       <div className="exp-auth-brand">
         <div className="exp-auth-brand-row">
-          <div className="exp-auth-brand-mark" aria-hidden>
-            E
-          </div>
+          <Image
+            src="/Logo.PNG"
+            alt="Expense Tracker Logo"
+            width={44}
+            height={44}
+            className="exp-auth-logo"
+            priority
+          />
           <ThemeToggle size="sm" />
         </div>
         <div className="exp-auth-brand-name">Expense Tracker</div>

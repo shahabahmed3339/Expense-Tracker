@@ -4,6 +4,7 @@ import { signIn, useSession } from "next-auth/react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import Image from "next/image";
 import { toast } from "sonner";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Loader } from "@/components/Loader";
@@ -173,9 +174,14 @@ export default function LoginPage() {
     <div className="exp-auth-root">
       <div className="exp-auth-brand">
         <div className="exp-auth-brand-row">
-          <div className="exp-auth-brand-mark" aria-hidden>
-            E
-          </div>
+          <Image
+            src="/Logo.PNG"
+            alt="Expense Tracker Logo"
+            width={44}
+            height={44}
+            className="exp-auth-logo"
+            priority
+          />
           <ThemeToggle size="sm" />
         </div>
         <div className="exp-auth-brand-name">Expense Tracker</div>
