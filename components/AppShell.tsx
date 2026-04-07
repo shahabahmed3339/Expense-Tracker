@@ -254,7 +254,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <div className="min-h-[100dvh] flex flex-col">
+    <div className="h-[100dvh] flex flex-col overflow-hidden">
       <header className="motion-shell sticky top-0 z-30 flex shrink-0 items-center justify-between gap-2 border-b border-[var(--border)] bg-[var(--card)] px-4 py-3 safe-pt">
         <div className="flex items-center gap-3">
           <div className="max-md:hidden">
@@ -310,18 +310,18 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </div>
       </aside>
 
-      <div className="flex min-h-0 flex-1 md:flex-row">
+      <div className="flex min-h-0 flex-1 overflow-hidden md:flex-row">
         {/* Desktop sidebar */}
         <aside
           className={`motion-shell hidden shrink-0 flex-col border-b-0 border-r border-[var(--border)] bg-[var(--card)] transition-[width] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] md:flex ${desktopSidebarOpen ? "w-80" : "w-20"
-            }`}
+            } h-full`}
         >
-          <div className="min-h-0 flex-1 overflow-y-auto pt-3">
+          <div className="min-h-0 flex-1 overflow-y-auto pt-3 scroll-container">
             <NavLinks pathname={pathname} collapsed={!desktopSidebarOpen} />
           </div>
         </aside>
 
-        <main className="min-w-0 flex-1 px-3 py-4 sm:px-4 md:p-8 md:px-8 lg:mx-auto lg:max-w-6xl lg:w-full safe-pb">
+        <main className="min-w-0 flex-1 overflow-y-auto px-3 py-4 sm:px-4 md:p-8 md:px-8 lg:mx-auto lg:max-w-6xl lg:w-full safe-pb scroll-container">
           <div className="motion-page">{children}</div>
         </main>
       </div>

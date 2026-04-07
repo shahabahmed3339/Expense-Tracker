@@ -218,6 +218,44 @@ input[type="reset"]:disabled {
   animation-delay: 160ms;
 }
 
+.scroll-container {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.scroll-container::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}
+
+/* .scroll-container:hover::-webkit-scrollbar,
+.scroll-container:focus-within::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+} */
+
+.scroll-container::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.scroll-container::-webkit-scrollbar-thumb {
+  background-color: transparent;
+  border-radius: 999px;
+  border: 3px solid transparent;
+  background-clip: content-box;
+}
+
+/* .scroll-container:hover::-webkit-scrollbar-thumb,
+.scroll-container:focus-within::-webkit-scrollbar-thumb {
+  background-color: rgba(148, 163, 184, 0.75);
+}
+
+.scroll-container:hover,
+.scroll-container:focus-within {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(148, 163, 184, 0.75) transparent;
+} */
+
 .motion-page > *:nth-child(4) {
   animation-delay: 220ms;
 }
