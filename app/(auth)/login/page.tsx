@@ -47,16 +47,6 @@ export default function LoginPage() {
     return () => window.clearInterval(timer);
   }, [otpExpiresAt]);
 
-  if (status === "loading" || status === "authenticated") {
-    return (
-      <div className="exp-auth-root">
-        <div className="exp-auth-loading">
-          <Loader />
-        </div>
-      </div>
-    );
-  }
-
   const startLogin = async () => {
     setPending(true);
     setUnverifiedEmail("");
@@ -179,181 +169,191 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="exp-auth-root">
-      <div className="exp-auth-brand">
-        <div className="exp-auth-brand-row">
-          <Image
-            src="/Logo.PNG"
-            alt="Expense Tracker Logo"
-            width={44}
-            height={44}
-            className="exp-auth-logo"
-            priority
-          />
-          <ThemeToggle size="sm" />
-        </div>
-        <div className="exp-auth-brand-name">Expense Tracker</div>
-      </div>
-
-      <div className="exp-auth-card">
-        <h1 className="exp-auth-title">{requiresOtp ? "Enter login code" : "Sign in"}</h1>
-        <p className="exp-auth-sub">
-          {requiresOtp ? `We sent a 6-digit code to ${otpMaskedEmail}.` : "Use your email and password to continue."}
-        </p>
-
-        {unverifiedEmail ? (
-          <div className="exp-auth-notice">
-            <p className="exp-auth-helper">Your email is not verified yet.</p>
-            <button
-              type="button"
-              className="exp-auth-secondary"
-              onClick={resendVerification}
-              disabled={resendingVerification}
-              aria-label="Resend verification email"
-              title="Resend verification email"
-            >
-              <span className="exp-auth-button-content">
-                {resendingVerification ? <span className="spinner" aria-hidden="true" /> : null}
-                {resendingVerification ? "Sending..." : "Resend verification email"}
-              </span>
-            </button>
+    <>
+      {(status === "loading" || status === "authenticated") ?
+        (<div className="exp-auth-root">
+          <div className="exp-auth-loading">
+            <Loader />
           </div>
-        ) : null}
-
-        {!requiresOtp ? (
-          <>
-            <div className="exp-auth-field">
-              <label className="exp-auth-label" htmlFor="login-email">
-                Email
-              </label>
-              <input
-                id="login-email"
-                type="email"
-                className="exp-auth-input"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                autoComplete="email"
-                placeholder="you@example.com"
+        </div>)
+        :
+        (<div className="exp-auth-root">
+          <div className="exp-auth-brand">
+            <div className="exp-auth-brand-row">
+              <Image
+                src="/Logo.PNG"
+                alt="Expense Tracker Logo"
+                width={44}
+                height={44}
+                className="exp-auth-logo"
+                priority
               />
+              <ThemeToggle size="sm" />
             </div>
+            <div className="exp-auth-brand-name">Expense Tracker</div>
+          </div>
 
-            <div className="exp-auth-field">
-              <label className="exp-auth-label" htmlFor="login-password">
-                Password
-              </label>
-              <div className="exp-auth-input-wrap">
-                <input
-                  id="login-password"
-                  type={showPassword ? "text" : "password"}
-                  className="exp-auth-input exp-auth-input-with-action"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  autoComplete="current-password"
-                  placeholder="........"
-                />
-                <button
-                  type="button"
-                  className="exp-auth-input-action"
-                  onClick={() => setShowPassword((current) => !current)}
-                  aria-label={showPassword ? "Hide password" : "Show password"}
-                  title={showPassword ? "Hide password" : "Show password"}
-                >
-                  {showPassword ? "Hide" : "Show"}
-                </button>
-              </div>
-            </div>
+          <div className="exp-auth-card">
+            <h1 className="exp-auth-title">{requiresOtp ? "Enter login code" : "Sign in"}</h1>
+            <p className="exp-auth-sub">
+              {requiresOtp ? `We sent a 6-digit code to ${otpMaskedEmail}.` : "Use your email and password to continue."}
+            </p>
 
-            <div className="exp-auth-actions">
-              <button
-                type="button"
-                disabled={pending}
-                className="exp-auth-primary"
-                aria-label={pending ? "Signing in with email" : "Sign in with email"}
-                title={pending ? "Signing in..." : "Sign in with email"}
-                onClick={startLogin}
-              >
-                {pending ? "Signing in..." : "Continue"}
-              </button>
-              {!!process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID && (
+            {unverifiedEmail ? (
+              <div className="exp-auth-notice">
+                <p className="exp-auth-helper">Your email is not verified yet.</p>
                 <button
                   type="button"
                   className="exp-auth-secondary"
-                  aria-label="Continue with Google"
-                  title="Continue with Google"
-                  onClick={() => signIn("google", { callbackUrl: "/dashboard" })}
+                  onClick={resendVerification}
+                  disabled={resendingVerification}
+                  aria-label="Resend verification email"
+                  title="Resend verification email"
                 >
-                  Continue with Google
+                  <span className="exp-auth-button-content">
+                    {resendingVerification ? <span className="spinner" aria-hidden="true" /> : null}
+                    {resendingVerification ? "Sending..." : "Resend verification email"}
+                  </span>
                 </button>
-              )}
-            </div>
-          </>
-        ) : (
-          <>
-            <div className="exp-auth-field">
-              <label className="exp-auth-label" htmlFor="login-otp">
-                Login OTP
-              </label>
-              <input
-                id="login-otp"
-                inputMode="numeric"
-                maxLength={6}
-                className="exp-auth-input"
-                value={otpCode}
-                onChange={(event) => setOtpCode(event.target.value.replace(/\D/g, "").slice(0, 6))}
-                placeholder="123456"
-              />
-              <p className="exp-auth-helper">
-                Use the code from your email. Time remaining: {formatOtpTime(otpSecondsLeft)}.
-              </p>
-            </div>
+              </div>
+            ) : null}
 
-            <div className="exp-auth-actions">
-              <button
-                type="button"
-                disabled={pending || otpCode.length !== 6}
-                className="exp-auth-primary"
-                aria-label={pending ? "Verifying OTP" : "Verify OTP and sign in"}
-                title={pending ? "Verifying..." : "Verify OTP and sign in"}
-                onClick={verifyOtpAndLogin}
-              >
-                {pending ? "Verifying..." : "Verify and sign in"}
-              </button>
-              <button
-                type="button"
-                className="exp-auth-secondary"
-                disabled={resending || otpSecondsLeft > 0}
-                onClick={resendOtp}
-                aria-label="Resend OTP"
-                title="Resend OTP"
-              >
-                {resending ? "Resending..." : otpSecondsLeft > 0 ? `Resend in ${formatOtpTime(otpSecondsLeft)}` : "Resend OTP"}
-              </button>
-              <button
-                type="button"
-                className="exp-auth-secondary"
-                onClick={() => {
-                  setRequiresOtp(false);
-                  setOtpCode("");
-                  setOtpChallengeId("");
-                  setOtpExpiresAt(null);
-                }}
-                aria-label="Back to password sign in"
-                title="Back"
-              >
-                Back
-              </button>
-            </div>
-          </>
-        )}
+            {!requiresOtp ? (
+              <>
+                <div className="exp-auth-field">
+                  <label className="exp-auth-label" htmlFor="login-email">
+                    Email
+                  </label>
+                  <input
+                    id="login-email"
+                    type="email"
+                    className="exp-auth-input"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    autoComplete="email"
+                    placeholder="you@example.com"
+                  />
+                </div>
 
-        <p className="exp-auth-footer">
-          No account?{" "}
-          <Link href="/signup" aria-label="Go to sign up page" title="Sign up">
-            Sign up
-          </Link>
-        </p>
-      </div>
-    </div>
+                <div className="exp-auth-field">
+                  <label className="exp-auth-label" htmlFor="login-password">
+                    Password
+                  </label>
+                  <div className="exp-auth-input-wrap">
+                    <input
+                      id="login-password"
+                      type={showPassword ? "text" : "password"}
+                      className="exp-auth-input exp-auth-input-with-action"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      autoComplete="current-password"
+                      placeholder="........"
+                    />
+                    <button
+                      type="button"
+                      className="exp-auth-input-action"
+                      onClick={() => setShowPassword((current) => !current)}
+                      aria-label={showPassword ? "Hide password" : "Show password"}
+                      title={showPassword ? "Hide password" : "Show password"}
+                    >
+                      {showPassword ? "Hide" : "Show"}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="exp-auth-actions">
+                  <button
+                    type="button"
+                    disabled={pending}
+                    className="exp-auth-primary"
+                    aria-label={pending ? "Signing in with email" : "Sign in with email"}
+                    title={pending ? "Signing in..." : "Sign in with email"}
+                    onClick={startLogin}
+                  >
+                    {pending ? "Signing in..." : "Continue"}
+                  </button>
+                  {!!process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID && (
+                    <button
+                      type="button"
+                      className="exp-auth-secondary"
+                      aria-label="Continue with Google"
+                      title="Continue with Google"
+                      onClick={() => signIn("google", { callbackUrl: "/dashboard" })}
+                    >
+                      Continue with Google
+                    </button>
+                  )}
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="exp-auth-field">
+                  <label className="exp-auth-label" htmlFor="login-otp">
+                    Login OTP
+                  </label>
+                  <input
+                    id="login-otp"
+                    inputMode="numeric"
+                    maxLength={6}
+                    className="exp-auth-input"
+                    value={otpCode}
+                    onChange={(event) => setOtpCode(event.target.value.replace(/\D/g, "").slice(0, 6))}
+                    placeholder="123456"
+                  />
+                  <p className="exp-auth-helper">
+                    Use the code from your email. Time remaining: {formatOtpTime(otpSecondsLeft)}.
+                  </p>
+                </div>
+
+                <div className="exp-auth-actions">
+                  <button
+                    type="button"
+                    disabled={pending || otpCode.length !== 6}
+                    className="exp-auth-primary"
+                    aria-label={pending ? "Verifying OTP" : "Verify OTP and sign in"}
+                    title={pending ? "Verifying..." : "Verify OTP and sign in"}
+                    onClick={verifyOtpAndLogin}
+                  >
+                    {pending ? "Verifying..." : "Verify and sign in"}
+                  </button>
+                  <button
+                    type="button"
+                    className="exp-auth-secondary"
+                    disabled={resending || otpSecondsLeft > 0}
+                    onClick={resendOtp}
+                    aria-label="Resend OTP"
+                    title="Resend OTP"
+                  >
+                    {resending ? "Resending..." : otpSecondsLeft > 0 ? `Resend in ${formatOtpTime(otpSecondsLeft)}` : "Resend OTP"}
+                  </button>
+                  <button
+                    type="button"
+                    className="exp-auth-secondary"
+                    onClick={() => {
+                      setRequiresOtp(false);
+                      setOtpCode("");
+                      setOtpChallengeId("");
+                      setOtpExpiresAt(null);
+                    }}
+                    aria-label="Back to password sign in"
+                    title="Back"
+                  >
+                    Back
+                  </button>
+                </div>
+              </>
+            )}
+
+            <p className="exp-auth-footer">
+              No account?{" "}
+              <Link href="/signup" aria-label="Go to sign up page" title="Sign up">
+                Sign up
+              </Link>
+            </p>
+          </div>
+        </div>)
+      }
+    </>
   );
 }
 
