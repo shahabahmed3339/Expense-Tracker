@@ -11,6 +11,7 @@ function VerifyEmailClient({ token }: { token: string | null | undefined }) {
   const [message, setMessage] = useState("Verifying your email...");
 
   useEffect(() => {
+    console.log('token :', token);
     if (token === undefined) {
       setState("loading");
       setMessage("Verifying your email...");
@@ -81,7 +82,13 @@ function VerifyEmailClient({ token }: { token: string | null | undefined }) {
 export default function VerifyEmailPage({
   searchParams,
 }: {
-  searchParams: { token?: string };
+  searchParams: Promise<{ token?: string }>;
 }) {
-  return <VerifyEmailClient token={searchParams.token ?? null} />;
+  const [token, setToken] = useState<string | null | undefined>(undefined);
+
+  useEffect(() => {
+    void searchParams.then((params) => setToken(params.token ?? null));
+  }, [searchParams]);
+
+  return <VerifyEmailClient token={token} />;
 }
