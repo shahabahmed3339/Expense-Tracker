@@ -81,13 +81,7 @@ function VerifyEmailClient({ token }: { token: string | null | undefined }) {
 export default function VerifyEmailPage({
   searchParams,
 }: {
-  searchParams: Promise<{ token?: string }>;
+  searchParams: { token?: string };
 }) {
-  const [token, setToken] = useState<string | null | undefined>(undefined);
-
-  useEffect(() => {
-    void searchParams.then((params) => setToken(params.token ?? null));
-  }, [searchParams]);
-
-  return <VerifyEmailClient token={token} />;
+  return <VerifyEmailClient token={searchParams.token ?? null} />;
 }
