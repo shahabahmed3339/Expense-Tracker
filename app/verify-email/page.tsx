@@ -5,13 +5,13 @@ import Image from "next/image";
 import { useEffect, useState } from "react";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Loader } from "@/components/Loader";
+import { use } from 'react';
 
 function VerifyEmailClient({ token }: { token: string | null | undefined }) {
   const [state, setState] = useState<"loading" | "success" | "error">("loading");
   const [message, setMessage] = useState("Verifying your email...");
 
   useEffect(() => {
-    console.log('token :', token);
     if (token === undefined) {
       setState("loading");
       setMessage("Verifying your email...");
@@ -84,14 +84,8 @@ export default function VerifyEmailPage({
 }: {
   searchParams: Promise<{ token?: string }>;
 }) {
-  const [token, setToken] = useState<string | null | undefined>(undefined);
-
-  useEffect(() => {
-    void searchParams.then((params) => {
-    console.log('params :', params);
-      setToken(params.token ?? null)
-    });
-  }, [searchParams]);
+  const params = use(searchParams);
+  const token = params.token ?? null;
 
   return <VerifyEmailClient token={token} />;
 }
