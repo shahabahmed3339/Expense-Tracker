@@ -1,12 +1,13 @@
 import type { PrismaClient } from "@prisma/client";
 import { TRPCError } from "@trpc/server";
 import { remainingBudget } from "@/lib/calculations/budget";
+import { VALIDATION_MESSAGES } from "@/lib/config/runtime";
 import { getNetCategorySpendForRange } from "./expense.service";
 
 function monthRange(month: string) {
   const [y, m] = month.split("-").map(Number);
   if (!y || !m || m < 1 || m > 12) {
-    throw new TRPCError({ code: "BAD_REQUEST", message: "Invalid month format (use YYYY-MM)" });
+    throw new TRPCError({ code: "BAD_REQUEST", message: VALIDATION_MESSAGES.invalidMonthFormat });
   }
   const start = new Date(Date.UTC(y, m - 1, 1));
   const end = new Date(Date.UTC(y, m, 1));
@@ -68,7 +69,7 @@ export async function listBudgetsForMonth(prisma: PrismaClient, userId: string, 
   return prisma.budget.findMany({
     where: { userId, month },
     include: { category: true },
-    orderBy: { category: { name: "asc" } },
+    orderBy: [{ updatedAt: "desc" }, { category: { name: "asc" } }],
   });
 }
 
@@ -129,6 +130,40 @@ export async function deleteBudget(prisma: PrismaClient, userId: string, id: str
   const row = await prisma.budget.findFirst({ where: { id, userId } });
   if (!row) throw new TRPCError({ code: "NOT_FOUND", message: "Budget not found" });
   return prisma.budget.delete({ where: { id } });
+}
+
+export async function getBudgetDetails(prisma: PrismaClient, userId: string, id: string) {
+  const budget = await prisma.budget.findFirst({
+    where: { id, userId },
+    include: { category: true },
+  });
+  if (!budget) {
+    throw new TRPCError({ code: "NOT_FOUND", message: "Budget not found" });
+  }
+
+  const { start, end } = monthRange(budget.month);
+  const expenses = await prisma.expense.findMany({
+    where: {
+      userId,
+      categoryId: budget.categoryId,
+      date: { gte: start, lt: end },
+    },
+    include: {
+      category: true,
+      splits: { include: { person: true } },
+    },
+    orderBy: [{ updatedAt: "desc" }, { date: "desc" }],
+  });
+
+  const spent = expenses.reduce((sum, expense) => sum + expense.amount, 0);
+
+  return {
+    budget,
+    spent,
+    remaining: remainingBudget(budget.amount, spent),
+    expenseCount: expenses.length,
+    expenses,
+  };
 }
 
 /** Per-category remaining = budget amount - sum(expenses in month for category). */

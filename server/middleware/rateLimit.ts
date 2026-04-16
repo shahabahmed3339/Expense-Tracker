@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { RATE_LIMIT_MESSAGES } from "@/server/config/rateLimit";
 
 type RateLimitOptions = {
   scope: string;
@@ -47,7 +48,7 @@ export function enforceRateLimit(req: Request, options: RateLimitOptions) {
     const retryAfterSeconds = Math.max(1, Math.ceil((current.resetAt - now) / 1000));
     return NextResponse.json(
       {
-        error: options.message ?? "Too many requests. Please try again shortly.",
+        error: options.message ?? RATE_LIMIT_MESSAGES.tooManyRequests,
         retryAfterSeconds,
       },
       {

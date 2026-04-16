@@ -1,20 +1,17 @@
 import { NextResponse } from "next/server";
+import { AUTH_API_MESSAGES } from "@/server/config/auth";
+import { AUTH_RATE_LIMITS } from "@/server/config/rateLimit";
 import { prisma } from "@/server/db/client";
 import { enforceRateLimit } from "@/server/middleware/rateLimit";
 
 export async function POST(req: Request) {
   try {
-    const ipLimit = enforceRateLimit(req, {
-      scope: "auth:verify:token",
-      limit: 20,
-      windowMs: 15 * 60 * 1000,
-      message: "Too many verification attempts. Please try again shortly.",
-    });
+    const ipLimit = enforceRateLimit(req, AUTH_RATE_LIMITS.verifyEmailIp);
     if (ipLimit) return ipLimit;
 
     const { token } = (await req.json()) as { token?: string };
     if (!token) {
-      return NextResponse.json({ error: "Missing token" }, { status: 400 });
+      return NextResponse.json({ error: AUTH_API_MESSAGES.missingToken }, { status: 400 });
     }
 
     const record = await prisma.emailVerificationToken.findUnique({
@@ -23,7 +20,7 @@ export async function POST(req: Request) {
     });
 
     if (!record || record.consumedAt || record.expiresAt <= new Date()) {
-      return NextResponse.json({ error: "Verification link is invalid or expired" }, { status: 400 });
+      return NextResponse.json({ error: AUTH_API_MESSAGES.verificationLinkInvalid }, { status: 400 });
     }
 
     await prisma.$transaction([
@@ -39,6 +36,6 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ ok: true });
   } catch {
-    return NextResponse.json({ error: "Verification failed" }, { status: 500 });
+    return NextResponse.json({ error: AUTH_API_MESSAGES.verificationFailed }, { status: 500 });
   }
 }

@@ -1,8 +1,11 @@
 import { compare, hash } from "bcryptjs";
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { AUTH_CONFIG } from "@/lib/config/runtime";
 import { buildLoginOtpEmail, sendEmail } from "@/server/auth/email";
 import { addMinutes, generateOtpCode, maskEmail } from "@/server/auth/tokens";
+import { AUTH_API_MESSAGES, AUTH_TIMING } from "@/server/config/auth";
+import { AUTH_RATE_LIMITS } from "@/server/config/rateLimit";
 import { prisma } from "@/server/db/client";
 import { createRateLimitKey, enforceRateLimit } from "@/server/middleware/rateLimit";
 
@@ -13,42 +16,34 @@ const bodySchema = z.object({
 
 export async function POST(req: Request) {
   try {
-    const ipLimit = enforceRateLimit(req, {
-      scope: "auth:login:start:ip",
-      limit: 12,
-      windowMs: 15 * 60 * 1000,
-      message: "Too many login attempts. Please wait before trying again.",
-    });
+    const ipLimit = enforceRateLimit(req, AUTH_RATE_LIMITS.loginStartIp);
     if (ipLimit) return ipLimit;
 
     const json = await req.json();
     const parsed = bodySchema.safeParse(json);
     if (!parsed.success) {
-      return NextResponse.json({ error: "Invalid input" }, { status: 400 });
+      return NextResponse.json({ error: AUTH_API_MESSAGES.invalidInput }, { status: 400 });
     }
 
     const email = parsed.data.email.trim().toLowerCase();
     const password = parsed.data.password;
     const emailLimit = enforceRateLimit(req, {
-      scope: "auth:login:start:email",
+      ...AUTH_RATE_LIMITS.loginStartEmail,
       key: createRateLimitKey(req, email),
-      limit: 6,
-      windowMs: 10 * 60 * 1000,
-      message: "Too many login attempts for this email. Please wait a bit.",
     });
     if (emailLimit) return emailLimit;
 
     const user = await prisma.user.findUnique({ where: { email } });
     if (!user?.passwordHash) {
-      return NextResponse.json({ error: "Invalid email or password" }, { status: 401 });
+      return NextResponse.json({ error: AUTH_API_MESSAGES.invalidCredentials }, { status: 401 });
     }
     if (!user.emailVerified) {
-      return NextResponse.json({ error: "Please verify your email before signing in", requiresVerification: true }, { status: 403 });
+      return NextResponse.json({ error: AUTH_API_MESSAGES.verificationRequired, requiresVerification: true }, { status: 403 });
     }
 
     const ok = await compare(password, user.passwordHash);
     if (!ok) {
-      return NextResponse.json({ error: "Invalid email or password" }, { status: 401 });
+      return NextResponse.json({ error: AUTH_API_MESSAGES.invalidCredentials }, { status: 401 });
     }
 
     if (!user.otpEnabled) {
@@ -64,8 +59,8 @@ export async function POST(req: Request) {
       data: {
         userId: user.id,
         email,
-        codeHash: await hash(otpCode, 10),
-        expiresAt: addMinutes(new Date(), 2),
+        codeHash: await hash(otpCode, AUTH_CONFIG.otpHashRounds),
+        expiresAt: addMinutes(new Date(), AUTH_TIMING.otpExpiryMinutes),
       },
     });
 
@@ -82,6 +77,6 @@ export async function POST(req: Request) {
       expiresAt: challenge.expiresAt.toISOString(),
     });
   } catch {
-    return NextResponse.json({ error: "Unable to start login" }, { status: 500 });
+    return NextResponse.json({ error: AUTH_API_MESSAGES.loginStartFailed }, { status: 500 });
   }
 }

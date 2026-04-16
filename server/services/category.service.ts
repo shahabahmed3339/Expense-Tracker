@@ -27,7 +27,7 @@ async function ensureUniqueCategoryName(
 export async function listCategories(prisma: PrismaClient, userId: string) {
   return prisma.category.findMany({
     where: { userId },
-    orderBy: { name: "asc" },
+    orderBy: [{ updatedAt: "desc" }, { name: "asc" }],
   });
 }
 

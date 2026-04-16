@@ -1,11 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { CategoryType } from "@prisma/client";
 import { api } from "@/lib/trpc";
+import { CATEGORY_TYPE_LABELS } from "@/lib/constants/domain";
+import { COMMON_UI } from "@/lib/constants/ui";
+import { formatShortDate } from "@/lib/formatting/date";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { FilterBar, FilterField } from "@/components/ui/FilterBar";
 import { InlineCreateCategory } from "@/components/dependencies/InlineCreateCategory";
 import { EmptyState } from "@/components/EmptyState";
 import { Loader } from "@/components/Loader";
@@ -14,6 +18,8 @@ import { toast } from "sonner";
 
 export default function CategoriesPage() {
   const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const [typeFilter, setTypeFilter] = useState("all");
   const [editingCategory, setEditingCategory] = useState<{
     id: string;
     name: string;
@@ -29,11 +35,22 @@ export default function CategoriesPage() {
       toast.success("Category updated");
       setEditingCategory(null);
     },
-    onError: (error) => toast.error(error.message),
+    onError: (mutationError) => toast.error(mutationError.message),
   });
   const del = api.category.delete.useMutation({
     onSuccess: () => utils.category.list.invalidate(),
   });
+
+  const filteredCategories = useMemo(() => {
+    return (categories ?? []).filter((category) => {
+      const matchesSearch =
+        search.trim().length === 0 ||
+        category.name.toLowerCase().includes(search.toLowerCase());
+      const matchesType = typeFilter === "all" || category.type === typeFilter;
+
+      return matchesSearch && matchesType;
+    });
+  }, [categories, search, typeFilter]);
 
   if (isLoading) return <Loader />;
   if (error) return <ErrorState message={error.message} />;
@@ -43,23 +60,46 @@ export default function CategoriesPage() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Categories</h1>
-          <p className="mt-1 text-sm text-[var(--muted)]">Fixed vs variable spending buckets.</p>
+          <p className="mt-1 text-sm text-[var(--muted)]">Fixed vs variable spending buckets, ordered by most recently updated.</p>
         </div>
         <Button onClick={() => setOpen(true)}>New category</Button>
       </div>
 
-      {!categories?.length ? (
-        <EmptyState text="No categories yet." />
+      <FilterBar>
+        <FilterField label="Search">
+          <input
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            placeholder="Category name"
+            className="w-full rounded-md border border-[var(--border)] bg-[var(--bg)] px-3 py-2 text-sm"
+          />
+        </FilterField>
+        <FilterField label="Type">
+          <select
+            value={typeFilter}
+            onChange={(event) => setTypeFilter(event.target.value)}
+            className="w-full rounded-md border border-[var(--border)] bg-[var(--bg)] px-3 py-2 text-sm"
+          >
+            <option value="all">All types</option>
+            <option value={CategoryType.FIXED}>{CATEGORY_TYPE_LABELS[CategoryType.FIXED]}</option>
+            <option value={CategoryType.VARIABLE}>{CATEGORY_TYPE_LABELS[CategoryType.VARIABLE]}</option>
+          </select>
+        </FilterField>
+      </FilterBar>
+
+      {!filteredCategories.length ? (
+        <EmptyState text="No categories match the current filters." />
       ) : (
         <ul className="space-y-2">
-          {categories.map((category) => (
+          {filteredCategories.map((category) => (
             <li
               key={category.id}
               className="motion-card flex flex-wrap items-center justify-between gap-2 rounded-lg border border-[var(--border)] bg-[var(--card)] px-4 py-3"
             >
               <div>
                 <p className="font-medium">{category.name}</p>
-                <p className="text-xs text-[var(--muted)]">{category.type}</p>
+                <p className="text-xs text-[var(--muted)]">{CATEGORY_TYPE_LABELS[category.type]}</p>
+                <p className="mt-1 text-xs text-[var(--muted)]">Updated {formatShortDate(category.updatedAt)}</p>
               </div>
               <div className="flex items-center gap-3">
                 <button
@@ -136,18 +176,18 @@ export default function CategoriesPage() {
                   )
                 }
               >
-                <option value={CategoryType.FIXED}>Fixed</option>
-                <option value={CategoryType.VARIABLE}>Variable</option>
+                <option value={CategoryType.FIXED}>{CATEGORY_TYPE_LABELS[CategoryType.FIXED]}</option>
+                <option value={CategoryType.VARIABLE}>{CATEGORY_TYPE_LABELS[CategoryType.VARIABLE]}</option>
               </select>
             </div>
             <button
               type="submit"
               disabled={update.isPending}
               className="w-full rounded-md bg-accent px-3 py-2 text-sm font-medium text-white disabled:opacity-50"
-              aria-label={update.isPending ? "Saving category changes" : "Save category changes"}
-              title={update.isPending ? "Saving..." : "Save changes"}
+              aria-label={update.isPending ? `Saving category changes` : `Save category changes`}
+              title={update.isPending ? COMMON_UI.saving : COMMON_UI.saveChanges}
             >
-              {update.isPending ? "Saving..." : "Save changes"}
+              {update.isPending ? COMMON_UI.saving : COMMON_UI.saveChanges}
             </button>
           </form>
         )}

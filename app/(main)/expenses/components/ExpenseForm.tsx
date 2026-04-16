@@ -2,7 +2,9 @@
 
 import { useForm } from "react-hook-form";
 import { api } from "@/lib/trpc";
+import { parseAmountInput } from "@/lib/formatting/currency";
 import { InlineCreateCategory } from "@/components/dependencies/InlineCreateCategory";
+import { MoneyInput } from "@/components/ui/MoneyInput";
 import { toast } from "sonner";
 
 export type ExpenseFormValues = {
@@ -47,7 +49,7 @@ export function ExpenseForm({
     onError: (error) => toast.error(error.message),
   });
 
-  const { register, handleSubmit, reset, getValues } = useForm<ExpenseFormValues>({
+  const { register, handleSubmit, reset, getValues, setValue, watch } = useForm<ExpenseFormValues>({
     defaultValues:
       initialValues ?? {
         amount: "",
@@ -61,7 +63,7 @@ export function ExpenseForm({
     <form
       className="space-y-3"
       onSubmit={handleSubmit((values) => {
-        const amount = parseFloat(values.amount);
+        const amount = parseAmountInput(values.amount);
         if (Number.isNaN(amount) || amount <= 0) {
           toast.error("Enter a valid amount");
           return;
@@ -98,11 +100,10 @@ export function ExpenseForm({
     >
       <div>
         <label className="mb-1 block text-xs text-[var(--muted)]">Amount</label>
-        <input
-          type="number"
-          step="0.01"
-          className="w-full rounded-md border border-[var(--border)] bg-[var(--bg)] px-3 py-2 text-sm"
-          {...register("amount", { required: true })}
+        <MoneyInput
+          value={watch("amount")}
+          onChange={(value) => setValue("amount", value, { shouldDirty: true })}
+          required
         />
       </div>
 

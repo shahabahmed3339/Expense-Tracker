@@ -43,8 +43,13 @@ export async function replaceExpenseSplits(
   }
 
   return prisma.$transaction(async (tx) => {
+    const touchTime = new Date();
     await tx.expenseSplit.deleteMany({ where: { expenseId } });
     if (splits.length === 0) {
+      await tx.expense.update({
+        where: { id: expenseId },
+        data: { updatedAt: touchTime },
+      });
       const cleared = await tx.expense.findUnique({
         where: { id: expenseId },
         include: { splits: { include: { person: true } }, category: true },
@@ -63,6 +68,10 @@ export async function replaceExpenseSplits(
         isSelf: s.isSelf ?? false,
         isPaid: s.isPaid ?? false,
       })),
+    });
+    await tx.expense.update({
+      where: { id: expenseId },
+      data: { updatedAt: touchTime },
     });
     const updated = await tx.expense.findUnique({
       where: { id: expenseId },

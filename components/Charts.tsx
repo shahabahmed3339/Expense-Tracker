@@ -9,6 +9,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import { EMPTY_STATE_COPY } from "@/lib/constants/ui";
 
 export type ChartRow = { month: string; expense?: number; budget?: number };
 
@@ -39,7 +40,7 @@ export function MultiChart({ data }: { data: ChartRow[] }) {
   }, []);
 
   if (!data.length) {
-    return <p className="text-sm text-[var(--muted)]">No data for chart yet.</p>;
+    return <p className="text-sm text-[var(--muted)]">{EMPTY_STATE_COPY.noChartData}</p>;
   }
 
   return (

@@ -1,8 +1,11 @@
 import { hash } from "bcryptjs";
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { AUTH_CONFIG } from "@/lib/config/runtime";
 import { buildLoginOtpEmail, sendEmail } from "@/server/auth/email";
 import { addMinutes, generateOtpCode, maskEmail } from "@/server/auth/tokens";
+import { AUTH_API_MESSAGES, AUTH_TIMING } from "@/server/config/auth";
+import { AUTH_RATE_LIMITS } from "@/server/config/rateLimit";
 import { prisma } from "@/server/db/client";
 import { createRateLimitKey, enforceRateLimit } from "@/server/middleware/rateLimit";
 
@@ -12,18 +15,13 @@ const bodySchema = z.object({
 
 export async function POST(req: Request) {
   try {
-    const ipLimit = enforceRateLimit(req, {
-      scope: "auth:login:resend:ip",
-      limit: 10,
-      windowMs: 15 * 60 * 1000,
-      message: "Too many OTP resend requests. Please wait before trying again.",
-    });
+    const ipLimit = enforceRateLimit(req, AUTH_RATE_LIMITS.loginResendIp);
     if (ipLimit) return ipLimit;
 
     const json = await req.json();
     const parsed = bodySchema.safeParse(json);
     if (!parsed.success) {
-      return NextResponse.json({ error: "Invalid request" }, { status: 400 });
+      return NextResponse.json({ error: AUTH_API_MESSAGES.invalidRequest }, { status: 400 });
     }
 
     const challenge = await prisma.loginOtpChallenge.findUnique({
@@ -32,15 +30,12 @@ export async function POST(req: Request) {
     });
 
     if (!challenge || challenge.consumedAt || challenge.user.emailVerified === null) {
-      return NextResponse.json({ error: "OTP challenge is invalid" }, { status: 400 });
+      return NextResponse.json({ error: AUTH_API_MESSAGES.otpChallengeInvalid }, { status: 400 });
     }
 
     const challengeLimit = enforceRateLimit(req, {
-      scope: "auth:login:resend:challenge",
+      ...AUTH_RATE_LIMITS.loginResendChallenge,
       key: createRateLimitKey(req, challenge.id),
-      limit: 3,
-      windowMs: 2 * 60 * 1000,
-      message: "You can resend the OTP again after the current code expires.",
     });
     if (challengeLimit) return challengeLimit;
 
@@ -48,8 +43,8 @@ export async function POST(req: Request) {
     const updated = await prisma.loginOtpChallenge.update({
       where: { id: challenge.id },
       data: {
-        codeHash: await hash(otpCode, 10),
-        expiresAt: addMinutes(new Date(), 2),
+        codeHash: await hash(otpCode, AUTH_CONFIG.otpHashRounds),
+        expiresAt: addMinutes(new Date(), AUTH_TIMING.otpExpiryMinutes),
         createdAt: new Date(),
       },
     });
@@ -66,6 +61,6 @@ export async function POST(req: Request) {
       expiresAt: updated.expiresAt.toISOString(),
     });
   } catch {
-    return NextResponse.json({ error: "Unable to resend OTP" }, { status: 500 });
+    return NextResponse.json({ error: AUTH_API_MESSAGES.loginResendFailed }, { status: 500 });
   }
 }

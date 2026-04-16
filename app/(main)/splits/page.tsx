@@ -4,9 +4,15 @@ import dynamic from "next/dynamic";
 import { useMemo, useState } from "react";
 import { api } from "@/lib/trpc";
 import { equalSplitParts, sumFloats } from "@/lib/calculations/split";
+import { groupBy } from "@/lib/collections/grouping";
+import { formatAmount, parseAmountInput } from "@/lib/formatting/currency";
+import { formatShortDate } from "@/lib/formatting/date";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
 import { InlineCreatePerson } from "@/components/dependencies/InlineCreatePerson";
+import { AmountText } from "@/components/ui/AmountText";
+import { FilterBar, FilterField } from "@/components/ui/FilterBar";
+import { MoneyInput } from "@/components/ui/MoneyInput";
 import { EmptyState } from "@/components/EmptyState";
 import { Loader } from "@/components/Loader";
 import { ErrorState } from "@/components/ErrorState";
@@ -59,6 +65,10 @@ export default function SplitsPage() {
   const [deleteExpenseId, setDeleteExpenseId] = useState("");
   const [viewExpenseId, setViewExpenseId] = useState("");
   const [personToAdd, setPersonToAdd] = useState("");
+  const [search, setSearch] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState("all");
+  const [paymentFilter, setPaymentFilter] = useState<"all" | "paid" | "unpaid" | "mixed">("all");
+  const [groupByCategory, setGroupByCategory] = useState(true);
 
   const utils = api.useUtils();
   const { data: listData, isLoading, error } = api.expense.list.useQuery({ take: 100 });
@@ -79,7 +89,32 @@ export default function SplitsPage() {
   const expenses = listData?.items ?? [];
   const expense = useMemo(() => expenses.find((entry) => entry.id === expenseId), [expenses, expenseId]);
   const expensesWithSplits = useMemo(() => expenses.filter((entry) => entry.splits.length > 0), [expenses]);
+  const filteredExpensesWithSplits = useMemo(() => {
+    return expensesWithSplits.filter((entry) => {
+      const matchesSearch =
+        search.trim().length === 0 ||
+        [entry.category.name, entry.note ?? "", formatShortDate(entry.date)]
+          .join(" ")
+          .toLowerCase()
+          .includes(search.toLowerCase());
+      const matchesCategory = categoryFilter === "all" || entry.categoryId === categoryFilter;
+      const paidCount = entry.splits.filter((split) => split.isPaid).length;
+      const unpaidCount = entry.splits.filter((split) => !split.isSelf && !split.isPaid).length;
+      const matchesPayment =
+        paymentFilter === "all" ||
+        (paymentFilter === "paid" ? unpaidCount === 0 && paidCount > 0 : false) ||
+        (paymentFilter === "unpaid" ? paidCount === 0 && unpaidCount > 0 : false) ||
+        (paymentFilter === "mixed" ? paidCount > 0 && unpaidCount > 0 : false);
+
+      return matchesSearch && matchesCategory && matchesPayment;
+    });
+  }, [categoryFilter, expensesWithSplits, paymentFilter, search]);
+  const groupedExpensesWithSplits = useMemo(
+    () => groupBy(filteredExpensesWithSplits, (entry) => entry.category.name),
+    [filteredExpensesWithSplits],
+  );
   const viewedExpense = useMemo(() => expenses.find((entry) => entry.id === viewExpenseId) ?? null, [expenses, viewExpenseId]);
+  const { data: categories } = api.category.list.useQuery();
 
   const participants = useMemo(
     () => [
@@ -168,7 +203,7 @@ export default function SplitsPage() {
     targetExpense.splits.forEach((split) => {
       const key = split.isSelf ? SELF_KEY : split.personId ?? split.id;
       nextSelected[key] = true;
-      nextAmounts[key] = String(split.amount);
+      nextAmounts[key] = formatAmount(split.amount);
       nextPaid[key] = split.isPaid;
     });
 
@@ -194,7 +229,7 @@ export default function SplitsPage() {
     const parts = equalSplitParts(expense.amount, chosen.length);
     const nextAmounts: AmountMap = {};
     chosen.forEach((participant, index) => {
-      nextAmounts[participant.key] = String(parts[index]);
+      nextAmounts[participant.key] = formatAmount(parts[index]);
     });
     setCustomAmounts(nextAmounts);
     setMode("custom");
@@ -229,7 +264,7 @@ export default function SplitsPage() {
             .map((participant) => ({
               personId: participant.personId,
               name: participant.label,
-              amount: parseFloat(customAmounts[participant.key]),
+              amount: parseAmountInput(customAmounts[participant.key]),
               isSelf: participant.isSelf,
               isPaid: participant.isSelf ? false : !!paidStates[participant.key],
             }))
@@ -242,7 +277,7 @@ export default function SplitsPage() {
 
     const sum = sumFloats(splits.map((split) => split.amount));
     if (Math.abs(sum - expense.amount) > 0.02) {
-      toast.error(`Splits must sum to ${expense.amount.toFixed(2)} (currently ${sum.toFixed(2)})`);
+      toast.error(`Splits must sum to ${formatAmount(expense.amount)} (currently ${formatAmount(sum)})`);
       return;
     }
 
@@ -258,11 +293,58 @@ export default function SplitsPage() {
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Splits</h1>
           <p className="mt-1 text-sm text-[var(--muted)]">
-            Include yourself in the split, and mark other people as paid when they have already settled their share.
+            Include yourself in the split, and mark other people as paid when they have already settled their share. Lists are ordered by most recently updated.
           </p>
         </div>
         {!!expenses.length && <Button onClick={openCreateModal}>Add split</Button>}
       </div>
+
+      <FilterBar>
+        <FilterField label="Search">
+          <input
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            placeholder="Category, note, date"
+            className="w-full rounded-md border border-[var(--border)] bg-[var(--bg)] px-3 py-2 text-sm"
+          />
+        </FilterField>
+        <FilterField label="Category">
+          <select
+            value={categoryFilter}
+            onChange={(event) => setCategoryFilter(event.target.value)}
+            className="w-full rounded-md border border-[var(--border)] bg-[var(--bg)] px-3 py-2 text-sm"
+          >
+            <option value="all">All categories</option>
+            {categories?.map((category) => (
+              <option key={category.id} value={category.id}>
+                {category.name}
+              </option>
+            ))}
+          </select>
+        </FilterField>
+        <FilterField label="Payment status">
+          <select
+            value={paymentFilter}
+            onChange={(event) => setPaymentFilter(event.target.value as typeof paymentFilter)}
+            className="w-full rounded-md border border-[var(--border)] bg-[var(--bg)] px-3 py-2 text-sm"
+          >
+            <option value="all">All</option>
+            <option value="paid">All paid</option>
+            <option value="unpaid">All unpaid</option>
+            <option value="mixed">Mixed</option>
+          </select>
+        </FilterField>
+        <FilterField label="Grouping">
+          <label className="flex h-[42px] items-center gap-2 rounded-md border border-[var(--border)] bg-[var(--bg)] px-3 text-sm text-[var(--fg)]">
+            <input
+              type="checkbox"
+              checked={groupByCategory}
+              onChange={(event) => setGroupByCategory(event.target.checked)}
+            />
+            Group by category
+          </label>
+        </FilterField>
+      </FilterBar>
 
       {!expenses.length ? (
         <div className="space-y-3">
@@ -270,69 +352,45 @@ export default function SplitsPage() {
           <Button onClick={() => setExpenseOpen(true)}>Add expense</Button>
         </div>
       ) : (
-        <div className="motion-card space-y-4 rounded-lg border border-[var(--border)] bg-[var(--card)] p-4">
-          <div>
-            <h2 className="text-sm font-medium">All saved splits</h2>
-            <p className="text-xs text-[var(--muted)]">Every expense with a saved split setup is listed here.</p>
-          </div>
-
-          {expensesWithSplits.length === 0 ? (
-            <p className="text-sm text-[var(--muted)]">No saved splits yet.</p>
+        <div className="space-y-4">
+          {filteredExpensesWithSplits.length === 0 ? (
+            <EmptyState text="No saved splits match the current filters." />
+          ) : groupByCategory ? (
+            Object.entries(groupedExpensesWithSplits).map(([categoryName, entries]) => (
+              <section
+                key={categoryName}
+                className="motion-card space-y-4 rounded-lg border border-[var(--border)] bg-[var(--card)] p-4"
+              >
+                <div>
+                  <h2 className="text-sm font-medium">{categoryName}</h2>
+                  <p className="text-xs text-[var(--muted)]">Every saved split in this category.</p>
+                </div>
+                <SplitTable
+                  entries={entries}
+                  onView={setViewExpenseId}
+                  onEdit={loadSavedSplitSetup}
+                  onDelete={(nextExpenseId) => {
+                    setDeleteExpenseId(nextExpenseId);
+                    setDeleteOpen(true);
+                  }}
+                />
+              </section>
+            ))
           ) : (
-            <div className="overflow-x-auto rounded-lg border border-[var(--border)]">
-              <table className="responsive-table w-full text-sm">
-                <thead>
-                  <tr className="border-b border-[var(--border)] bg-[var(--bg)] text-left text-[var(--muted)]">
-                    <th className="px-3 py-2 font-medium whitespace-nowrap">Expense</th>
-                    <th className="px-3 py-2 font-medium whitespace-nowrap">Category</th>
-                    <th className="px-3 py-2 font-medium whitespace-nowrap">Date</th>
-                    <th className="px-3 py-2 font-medium whitespace-nowrap">Participants</th>
-                    <th className="px-3 py-2 font-medium whitespace-nowrap">Total</th>
-                    <th className="px-3 py-2 font-medium whitespace-nowrap">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {expensesWithSplits.map((entry) => {
-                    return (
-                      <tr key={entry.id} className="motion-row border-t border-[var(--border)] align-top">
-                        <td className="px-3 py-2 tabular-nums" data-label="Expense">{entry.amount.toFixed(2)}</td>
-                        <td className="px-3 py-2 break-words" data-label="Category">{entry.category.name}</td>
-                        <td className="px-3 py-2" data-label="Date">{new Date(entry.date).toLocaleDateString()}</td>
-                        <td className="px-3 py-2" data-label="Participants">{entry.splits.length}</td>
-                        <td className="px-3 py-2 tabular-nums" data-label="Total">{entry.splits.reduce((sum, split) => sum + split.amount, 0).toFixed(2)}</td>
-                        <td className="px-3 py-2" data-label="Actions" data-actions-cell="true">
-                          <div className="flex items-center gap-3">
-                            <button
-                              type="button"
-                              className="text-sm text-[var(--muted)] hover:underline"
-                              aria-label={`View split participants for ${entry.category.name}`}
-                              title="View split participants"
-                              onClick={() => setViewExpenseId(entry.id)}
-                            >
-                              View
-                            </button>
-                            <button type="button" className="text-sm text-accent hover:underline" aria-label={`Edit split for ${entry.category.name}`} title="Edit split" onClick={() => loadSavedSplitSetup(entry.id)}>
-                              Edit
-                            </button>
-                            <button
-                              type="button"
-                              className="text-sm text-red-400 hover:underline"
-                              aria-label={`Delete split for ${entry.category.name}`}
-                              title="Delete split"
-                              onClick={() => {
-                                setDeleteExpenseId(entry.id);
-                                setDeleteOpen(true);
-                              }}
-                            >
-                              Delete
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+            <div className="motion-card space-y-4 rounded-lg border border-[var(--border)] bg-[var(--card)] p-4">
+              <div>
+                <h2 className="text-sm font-medium">All saved splits</h2>
+                <p className="text-xs text-[var(--muted)]">Every expense with a saved split setup is listed here.</p>
+              </div>
+              <SplitTable
+                entries={filteredExpensesWithSplits}
+                onView={setViewExpenseId}
+                onEdit={loadSavedSplitSetup}
+                onDelete={(nextExpenseId) => {
+                  setDeleteExpenseId(nextExpenseId);
+                  setDeleteOpen(true);
+                }}
+              />
             </div>
           )}
         </div>
@@ -362,7 +420,7 @@ export default function SplitsPage() {
               <option value="">Select expense...</option>
               {expenses.map((entry) => (
                 <option key={entry.id} value={entry.id}>
-                  {entry.amount.toFixed(2)} - {entry.category.name} - {new Date(entry.date).toLocaleDateString()}
+                  {formatAmount(entry.amount)} - {entry.category.name} - {formatShortDate(entry.date)}
                 </option>
               ))}
             </select>
@@ -371,7 +429,7 @@ export default function SplitsPage() {
           {expense ? (
             <>
               <p className="text-sm">
-                Total bill: <span className="tabular-nums font-semibold">{expense.amount.toFixed(2)}</span>
+                Total bill: <span className="tabular-nums font-semibold"><AmountText value={expense.amount} /></span>
               </p>
 
               <div className="flex gap-2">
@@ -521,14 +579,11 @@ export default function SplitsPage() {
                         <div key={participant.key} className="rounded-md border border-[var(--border)]/80 px-3 py-2">
                           <div className="flex flex-wrap items-center gap-3">
                             <span className="min-w-24 flex-1 text-sm">{participant.label}</span>
-                            <input
-                              type="number"
-                              step="0.01"
-                              placeholder="0"
-                              className="w-28 rounded-md border border-[var(--border)] bg-[var(--bg)] px-2 py-1 text-sm"
+                            <MoneyInput
+                              className="w-28 px-2 py-1"
                               value={customAmounts[participant.key] ?? ""}
                               onChange={(event) =>
-                                setCustomAmounts((prev) => ({ ...prev, [participant.key]: event.target.value }))
+                                setCustomAmounts((prev) => ({ ...prev, [participant.key]: event }))
                               }
                             />
                             {participant.isSelf ? (
@@ -603,13 +658,13 @@ export default function SplitsPage() {
           <div className="space-y-4">
             <div className="text-sm text-[var(--muted)]">
               <p>
-                Expense: <span className="text-[var(--fg)] tabular-nums">{viewedExpense.amount.toFixed(2)}</span>
+                Expense: <span className="text-[var(--fg)] tabular-nums"><AmountText value={viewedExpense.amount} /></span>
               </p>
               <p>
                 Category: <span className="text-[var(--fg)]">{viewedExpense.category.name}</span>
               </p>
               <p>
-                Date: <span className="text-[var(--fg)]">{new Date(viewedExpense.date).toLocaleDateString()}</span>
+                Date: <span className="text-[var(--fg)]">{formatShortDate(viewedExpense.date)}</span>
               </p>
             </div>
 
@@ -629,7 +684,7 @@ export default function SplitsPage() {
                         {split.isSelf ? "Me" : split.person?.name ?? split.name}
                       </td>
                       <td className="px-3 py-2 tabular-nums" data-label="Share">
-                        {split.amount.toFixed(2)}
+                        <AmountText value={split.amount} />
                       </td>
                       <td className="px-3 py-2" data-label="Status">
                         {split.isSelf ? "Your share" : split.isPaid ? "Paid" : "Unpaid"}
@@ -669,6 +724,93 @@ export default function SplitsPage() {
           </button>
         </div>
       </Modal>
+    </div>
+  );
+}
+
+function SplitTable({
+  entries,
+  onView,
+  onEdit,
+  onDelete,
+}: {
+  entries: {
+    id: string;
+    amount: number;
+    date: Date;
+    updatedAt: Date;
+    category: { name: string };
+    splits: { id: string; amount: number; isPaid: boolean; isSelf: boolean }[];
+  }[];
+  onView: (expenseId: string) => void;
+  onEdit: (expenseId: string) => void;
+  onDelete: (expenseId: string) => void;
+}) {
+  return (
+    <div className="overflow-x-auto rounded-lg border border-[var(--border)]">
+      <table className="responsive-table w-full text-sm">
+        <thead>
+          <tr className="border-b border-[var(--border)] bg-[var(--bg)] text-left text-[var(--muted)]">
+            <th className="px-3 py-2 font-medium whitespace-nowrap">Expense</th>
+            <th className="px-3 py-2 font-medium whitespace-nowrap">Category</th>
+            <th className="px-3 py-2 font-medium whitespace-nowrap">Date</th>
+            <th className="px-3 py-2 font-medium whitespace-nowrap">Participants</th>
+            <th className="px-3 py-2 font-medium whitespace-nowrap">Paid status</th>
+            <th className="px-3 py-2 font-medium whitespace-nowrap">Updated</th>
+            <th className="px-3 py-2 font-medium whitespace-nowrap">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {entries.map((entry) => {
+            const paidCount = entry.splits.filter((split) => split.isPaid).length;
+            const unpaidCount = entry.splits.filter((split) => !split.isSelf && !split.isPaid).length;
+            const paymentStatus =
+              unpaidCount === 0 && paidCount > 0 ? "Paid" : paidCount === 0 ? "Unpaid" : "Mixed";
+
+            return (
+              <tr key={entry.id} className="motion-row border-t border-[var(--border)] align-top">
+                <td className="px-3 py-2 tabular-nums" data-label="Expense"><AmountText value={entry.amount} /></td>
+                <td className="px-3 py-2 break-words" data-label="Category">{entry.category.name}</td>
+                <td className="px-3 py-2" data-label="Date">{formatShortDate(entry.date)}</td>
+                <td className="px-3 py-2" data-label="Participants">{entry.splits.length}</td>
+                <td className="px-3 py-2" data-label="Paid status">{paymentStatus}</td>
+                <td className="px-3 py-2 text-[var(--muted)]" data-label="Updated">{formatShortDate(entry.updatedAt)}</td>
+                <td className="px-3 py-2" data-label="Actions" data-actions-cell="true">
+                  <div className="flex items-center gap-3">
+                    <button
+                      type="button"
+                      className="text-sm text-[var(--muted)] hover:underline"
+                      aria-label={`View split participants for ${entry.category.name}`}
+                      title="View split participants"
+                      onClick={() => onView(entry.id)}
+                    >
+                      View
+                    </button>
+                    <button
+                      type="button"
+                      className="text-sm text-accent hover:underline"
+                      aria-label={`Edit split for ${entry.category.name}`}
+                      title="Edit split"
+                      onClick={() => onEdit(entry.id)}
+                    >
+                      Edit
+                    </button>
+                    <button
+                      type="button"
+                      className="text-sm text-red-400 hover:underline"
+                      aria-label={`Delete split for ${entry.category.name}`}
+                      title="Delete split"
+                      onClick={() => onDelete(entry.id)}
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
     </div>
   );
 }

@@ -4,9 +4,11 @@ import { router, protectedProcedure } from "../trpc";
 import {
   addLoanTransaction,
   createLoan,
+  deleteLoanTransaction,
   deleteLoan,
   listLoans,
   loanBalance,
+  updateLoanTransaction,
   updateLoan,
 } from "../services/loan.service";
 
@@ -55,4 +57,22 @@ export const loanRouter = router({
       }),
     )
     .mutation(({ ctx, input }) => addLoanTransaction(ctx.prisma, ctx.session.user.id, input)),
+
+  updateTransaction: protectedProcedure
+    .input(
+      z.object({
+        id: z.string().min(1),
+        amount: z.number().positive().optional(),
+        date: z.coerce.date().optional(),
+        note: z.string().optional().nullable(),
+      }),
+    )
+    .mutation(({ ctx, input }) => {
+      const { id, ...patch } = input;
+      return updateLoanTransaction(ctx.prisma, ctx.session.user.id, id, patch);
+    }),
+
+  deleteTransaction: protectedProcedure
+    .input(z.string().min(1))
+    .mutation(({ ctx, input }) => deleteLoanTransaction(ctx.prisma, ctx.session.user.id, input)),
 });

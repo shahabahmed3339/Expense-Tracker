@@ -1,31 +1,25 @@
 import { NextResponse } from "next/server";
 import { buildVerificationEmail, sendEmail } from "@/server/auth/email";
 import { addHours, generateVerificationToken } from "@/server/auth/tokens";
+import { AUTH_API_MESSAGES, AUTH_TIMING } from "@/server/config/auth";
+import { AUTH_RATE_LIMITS } from "@/server/config/rateLimit";
 import { prisma } from "@/server/db/client";
 import { createRateLimitKey, enforceRateLimit } from "@/server/middleware/rateLimit";
 
 export async function POST(req: Request) {
   try {
-    const ipLimit = enforceRateLimit(req, {
-      scope: "auth:verify:resend:ip",
-      limit: 8,
-      windowMs: 15 * 60 * 1000,
-      message: "Too many verification resend attempts. Please wait before trying again.",
-    });
+    const ipLimit = enforceRateLimit(req, AUTH_RATE_LIMITS.resendVerificationIp);
     if (ipLimit) return ipLimit;
 
     const { email } = (await req.json()) as { email?: string };
     const normalized = email?.trim().toLowerCase();
     if (!normalized) {
-      return NextResponse.json({ error: "Email is required" }, { status: 400 });
+      return NextResponse.json({ error: AUTH_API_MESSAGES.emailRequired }, { status: 400 });
     }
 
     const emailLimit = enforceRateLimit(req, {
-      scope: "auth:verify:resend:email",
+      ...AUTH_RATE_LIMITS.resendVerificationEmail,
       key: createRateLimitKey(req, normalized),
-      limit: 3,
-      windowMs: 15 * 60 * 1000,
-      message: "Verification email already sent recently. Please check your inbox first.",
     });
     if (emailLimit) return emailLimit;
 
@@ -50,7 +44,7 @@ export async function POST(req: Request) {
         userId: user.id,
         email: normalized,
         token,
-        expiresAt: addHours(new Date(), 24),
+        expiresAt: addHours(new Date(), AUTH_TIMING.verificationExpiryHours),
       },
     });
 
@@ -63,6 +57,6 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ ok: true });
   } catch {
-    return NextResponse.json({ error: "Unable to resend verification email" }, { status: 500 });
+    return NextResponse.json({ error: AUTH_API_MESSAGES.verificationResendFailed }, { status: 500 });
   }
 }

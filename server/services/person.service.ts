@@ -26,7 +26,7 @@ async function ensureUniquePersonName(
 export async function listPeople(prisma: PrismaClient, userId: string) {
   return prisma.person.findMany({
     where: { userId },
-    orderBy: { name: "asc" },
+    orderBy: [{ updatedAt: "desc" }, { name: "asc" }],
   });
 }
 

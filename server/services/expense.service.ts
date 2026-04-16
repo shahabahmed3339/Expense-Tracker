@@ -1,6 +1,7 @@
 import type { PrismaClient } from "@prisma/client";
 import { TRPCError } from "@trpc/server";
 import { sumFloats } from "@/lib/calculations/split";
+import { VALIDATION_MESSAGES } from "@/lib/config/runtime";
 
 type SplitInput = {
   personId?: string | null;
@@ -27,7 +28,7 @@ export type NetTrendRow = {
 function monthRange(month: string) {
   const [y, m] = month.split("-").map(Number);
   if (!y || !m || m < 1 || m > 12) {
-    throw new TRPCError({ code: "BAD_REQUEST", message: "Invalid month format (use YYYY-MM)" });
+    throw new TRPCError({ code: "BAD_REQUEST", message: VALIDATION_MESSAGES.invalidMonthFormat });
   }
   const start = new Date(Date.UTC(y, m - 1, 1));
   const end = new Date(Date.UTC(y, m, 1));
@@ -157,7 +158,7 @@ export async function listExpenses(
   const rows = await prisma.expense.findMany({
     where: { userId },
     include: { category: true, splits: { include: { person: true } } },
-    orderBy: { date: "desc" },
+    orderBy: [{ updatedAt: "desc" }, { date: "desc" }],
     take: take + 1,
     ...(opts.cursor ? { cursor: { id: opts.cursor }, skip: 1 } : {}),
   });

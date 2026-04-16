@@ -2,8 +2,11 @@
 
 import dynamic from "next/dynamic";
 import { api } from "@/lib/trpc";
+import { formatAmount } from "@/lib/formatting/currency";
+import { formatShortDate } from "@/lib/formatting/date";
 import { Loader } from "@/components/Loader";
 import { ErrorState } from "@/components/ErrorState";
+import { AmountText } from "@/components/ui/AmountText";
 
 const LazyMultiChart = dynamic(
   () => import("@/components/Charts").then((mod) => mod.MultiChart),
@@ -80,17 +83,17 @@ export default function DashboardPage() {
           <h2 className="text-sm font-medium text-[var(--muted)]">Financial snapshot</h2>
         </div>
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          <StatCard label="Budgeted this month" value={data.budgetedThisMonth.toFixed(2)} hint={`${budgetSummary.total} budget lines this month.`} />
-          <StatCard label="Spent this month" value={data.spentThisMonth.toFixed(2)} hint="Your effective burden after paid split shares." />
+          <StatCard label="Budgeted this month" value={formatAmount(data.budgetedThisMonth)} hint={`${budgetSummary.total} budget lines this month.`} />
+          <StatCard label="Spent this month" value={formatAmount(data.spentThisMonth)} hint="Your effective burden after paid split shares." />
           <StatCard
             label="Remaining this month"
-            value={data.remainingThisMonth.toFixed(2)}
+            value={formatAmount(data.remainingThisMonth)}
             tone={data.remainingThisMonth < 0 ? "danger" : "good"}
             hint={data.remainingThisMonth < 0 ? "You are over the current month budget." : "Still available before hitting budget."}
           />
           <StatCard
             label="Net loan position"
-            value={loanSummary.netPosition.toFixed(2)}
+            value={formatAmount(loanSummary.netPosition)}
             tone={loanSummary.netPosition < 0 ? "danger" : "good"}
             hint="Receivables minus payables."
           />
@@ -98,7 +101,7 @@ export default function DashboardPage() {
       </section>
 
       <div className="grid gap-6 xl:grid-cols-[1.5fr_1fr]">
-        <div className="motion-card min-w-0 rounded-xl border border-[var(--border)] bg-[var(--card)] p-4 overflow-x-auto">
+        <div className="motion-card min-w-0 overflow-x-auto rounded-xl border border-[var(--border)] bg-[var(--card)] p-4">
           <h2 className="mb-4 text-sm font-medium text-[var(--muted)]">Expense trend</h2>
           <LazyMultiChart data={chartData} />
         </div>
@@ -140,12 +143,12 @@ export default function DashboardPage() {
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="rounded-lg border border-[var(--border)]/80 bg-[var(--bg)] p-3">
               <p className="text-xs uppercase tracking-wide text-[var(--muted)]">Receivables</p>
-              <p className="mt-1 text-lg font-semibold">{loanSummary.receivableOutstanding.toFixed(2)}</p>
+              <p className="mt-1 text-lg font-semibold"><AmountText value={loanSummary.receivableOutstanding} /></p>
               <p className="mt-1 text-xs text-[var(--muted)]">{loanSummary.receivableCount} open receivable loans</p>
             </div>
             <div className="rounded-lg border border-[var(--border)]/80 bg-[var(--bg)] p-3">
               <p className="text-xs uppercase tracking-wide text-[var(--muted)]">Payables</p>
-              <p className="mt-1 text-lg font-semibold">{loanSummary.payableOutstanding.toFixed(2)}</p>
+              <p className="mt-1 text-lg font-semibold"><AmountText value={loanSummary.payableOutstanding} /></p>
               <p className="mt-1 text-xs text-[var(--muted)]">{loanSummary.payableCount} open payable loans</p>
             </div>
           </div>
@@ -163,11 +166,11 @@ export default function DashboardPage() {
                   <div className="min-w-0">
                     <p className="truncate">{expense.categoryName}</p>
                     <p className="text-xs text-[var(--muted)]">
-                      {new Date(expense.date).toLocaleDateString()} · {expense.splitCount > 0 ? `${expense.splitCount} participants in split` : "No split"}
+                      {formatShortDate(expense.date)} | {expense.splitCount > 0 ? `${expense.splitCount} participants in split` : "No split"}
                     </p>
                     {expense.note ? <p className="truncate text-xs text-[var(--muted)]">{expense.note}</p> : null}
                   </div>
-                  <span className="tabular-nums font-medium">{expense.amount.toFixed(2)}</span>
+                  <span className="tabular-nums font-medium"><AmountText value={expense.amount} /></span>
                 </li>
               ))
             )}
@@ -182,7 +185,7 @@ export default function DashboardPage() {
           {data.byCategory.map((category) => (
             <li key={category.categoryId} className="motion-row flex justify-between gap-3 rounded-md px-2 py-2 text-sm">
               <span className="min-w-0 truncate">{category.categoryName}</span>
-              <span className="tabular-nums">{category.amount.toFixed(2)}</span>
+              <span className="tabular-nums"><AmountText value={category.amount} /></span>
             </li>
           ))}
         </ul>

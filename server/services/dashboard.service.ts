@@ -75,7 +75,7 @@ export async function getDashboardSummary(prisma: PrismaClient, userId: string) 
         category: true,
         splits: true,
       },
-      orderBy: { date: "desc" },
+      orderBy: [{ updatedAt: "desc" }, { date: "desc" }],
       take: 5,
     }),
   ]);

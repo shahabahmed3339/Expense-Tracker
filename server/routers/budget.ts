@@ -3,6 +3,7 @@ import { router, protectedProcedure } from "../trpc";
 import {
   budgetVsActualForMonth,
   deleteBudget,
+  getBudgetDetails,
   listBudgetsForMonth,
   updateBudgetAmount,
   upsertBudget,
@@ -22,6 +23,10 @@ export const budgetRouter = router({
     .query(({ ctx, input }) =>
       budgetVsActualForMonth(ctx.prisma, ctx.session.user.id, input.month),
     ),
+
+  details: protectedProcedure
+    .input(z.object({ id: z.string().min(1) }))
+    .query(({ ctx, input }) => getBudgetDetails(ctx.prisma, ctx.session.user.id, input.id)),
 
   upsert: protectedProcedure
     .input(

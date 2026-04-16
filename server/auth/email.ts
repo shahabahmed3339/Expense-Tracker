@@ -3,7 +3,8 @@ import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 import { google } from "googleapis";
-import { createReadStream } from "fs";
+import { APP_CONFIG, AUTH_CONFIG, EMAIL_CONFIG } from "@/lib/config/runtime";
+import { AUTH_EMAIL_COPY } from "@/server/config/auth";
 
 type EmailPayload = {
   to: string;
@@ -155,7 +156,7 @@ export async function sendEmailViaGmailAPI(payload: EmailPayload) {
   }
 }
 
-const logoCid = "expense-tracker-logo";
+const logoCid = EMAIL_CONFIG.logoCid;
 
 function resolveLogoPath(): string | null {
   const currentFileDir = path.dirname(fileURLToPath(import.meta.url));
@@ -393,9 +394,9 @@ function buildEmailHtml(options: {
           <tr>
             <td class="brand">
               <div class="brand-mark">
-                <img src="${logoSrc}" alt="Expense Tracker Logo" style="width: 100%; height: 100%; object-fit: contain; border-radius: 1rem; display: block;" />
+                <img src="${logoSrc}" alt="${APP_CONFIG.name} Logo" style="width: 100%; height: 100%; object-fit: contain; border-radius: 1rem; display: block;" />
               </div>
-              <div class="brand-name">Expense Tracker</div>
+              <div class="brand-name">${APP_CONFIG.name}</div>
             </td>
           </tr>
           <tr>
@@ -423,17 +424,17 @@ function buildEmailHtml(options: {
 export function buildVerificationEmail(name: string | null | undefined, verificationUrl: string) {
   const greeting = name?.trim() ? `Hi ${name.trim()},` : "Hi,";
   return {
-    subject: "Verify your Expense Tracker email",
-    text: `${greeting}\n\nVerify your email by visiting this link within 24 hours:\n${verificationUrl}\n\nIf you didn't create an account, you can safely ignore this email.`,
+    subject: AUTH_EMAIL_COPY.verificationSubject,
+    text: `${greeting}\n\nVerify your email by visiting this link within ${AUTH_CONFIG.verificationExpiryHours} hours:\n${verificationUrl}\n\n${AUTH_EMAIL_COPY.verificationFooter}`,
     html: buildEmailHtml({
       title: "Verify your email",
       subtitle: "Complete your account setup",
       greeting,
-      body: "<p>Click the button below to verify your email address within 24 hours.</p>",
+      body: `<p>Click the button below to verify your email address within ${AUTH_CONFIG.verificationExpiryHours} hours.</p>`,
       actionText: "Verify email",
       actionUrl: verificationUrl,
       note: `Or copy and paste this link into your browser:<br><a href="${verificationUrl}" class="link">${verificationUrl}</a>`,
-      footerText: "If you didn't create an account, you can safely ignore this email.",
+      footerText: AUTH_EMAIL_COPY.verificationFooter,
     }),
     attachments: getLogoAttachments(),
   };
@@ -442,16 +443,16 @@ export function buildVerificationEmail(name: string | null | undefined, verifica
 export function buildLoginOtpEmail(name: string | null | undefined, otpCode: string) {
   const greeting = name?.trim() ? `Hi ${name.trim()},` : "Hi,";
   return {
-    subject: "Your Expense Tracker login code",
-    text: `${greeting}\n\nYour login code is ${otpCode}. It expires in 2 minutes.\n\nIf you didn't request this code, you can safely ignore this email.`,
+    subject: AUTH_EMAIL_COPY.otpSubject,
+    text: `${greeting}\n\nYour login code is ${otpCode}. It expires in ${AUTH_CONFIG.otpExpiryMinutes} minutes.\n\n${AUTH_EMAIL_COPY.otpFooter}`,
     html: buildEmailHtml({
       title: "Your login code",
       subtitle: "Enter this code to sign in",
       greeting,
       body: "<p>Use the code below to complete your sign-in.</p>",
       code: otpCode,
-      note: "This code expires in 2 minutes.",
-      footerText: "If you didn't request this code, you can safely ignore this email.",
+      note: `This code expires in ${AUTH_CONFIG.otpExpiryMinutes} minutes.`,
+      footerText: AUTH_EMAIL_COPY.otpFooter,
     }),
     attachments: getLogoAttachments(),
   };
