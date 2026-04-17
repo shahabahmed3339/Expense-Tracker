@@ -2,7 +2,6 @@
 
 import { useMemo, useState } from "react";
 import { api } from "@/lib/trpc";
-import { formatShortDate } from "@/lib/formatting/date";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
@@ -99,7 +98,6 @@ export default function GroupsPage() {
               <div>
                 <p className="font-medium">{person.name}</p>
                 {person.contact && <p className="text-sm text-[var(--muted)]">{person.contact}</p>}
-                <p className="mt-1 text-xs text-[var(--muted)]">Updated {formatShortDate(person.updatedAt)}</p>
               </div>
               <div className="flex items-center gap-3">
                 <button

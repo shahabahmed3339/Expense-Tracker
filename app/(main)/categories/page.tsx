@@ -5,7 +5,6 @@ import { CategoryType } from "@prisma/client";
 import { api } from "@/lib/trpc";
 import { CATEGORY_TYPE_LABELS } from "@/lib/constants/domain";
 import { COMMON_UI } from "@/lib/constants/ui";
-import { formatShortDate } from "@/lib/formatting/date";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
@@ -99,7 +98,6 @@ export default function CategoriesPage() {
               <div>
                 <p className="font-medium">{category.name}</p>
                 <p className="text-xs text-[var(--muted)]">{CATEGORY_TYPE_LABELS[category.type]}</p>
-                <p className="mt-1 text-xs text-[var(--muted)]">Updated {formatShortDate(category.updatedAt)}</p>
               </div>
               <div className="flex items-center gap-3">
                 <button

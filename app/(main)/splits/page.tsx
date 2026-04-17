@@ -756,7 +756,6 @@ function SplitTable({
             <th className="px-3 py-2 font-medium whitespace-nowrap">Date</th>
             <th className="px-3 py-2 font-medium whitespace-nowrap">Participants</th>
             <th className="px-3 py-2 font-medium whitespace-nowrap">Paid status</th>
-            <th className="px-3 py-2 font-medium whitespace-nowrap">Updated</th>
             <th className="px-3 py-2 font-medium whitespace-nowrap">Actions</th>
           </tr>
         </thead>
@@ -774,7 +773,6 @@ function SplitTable({
                 <td className="px-3 py-2" data-label="Date">{formatShortDate(entry.date)}</td>
                 <td className="px-3 py-2" data-label="Participants">{entry.splits.length}</td>
                 <td className="px-3 py-2" data-label="Paid status">{paymentStatus}</td>
-                <td className="px-3 py-2 text-[var(--muted)]" data-label="Updated">{formatShortDate(entry.updatedAt)}</td>
                 <td className="px-3 py-2" data-label="Actions" data-actions-cell="true">
                   <div className="flex items-center gap-3">
                     <button

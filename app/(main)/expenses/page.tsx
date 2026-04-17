@@ -231,9 +231,6 @@ function ExpenseList({
               {expense.category.name} | {formatShortDate(expense.date)}
               {expense.note ? ` | ${expense.note}` : ""}
             </p>
-            <p className="mt-1 text-xs text-[var(--muted)]">
-              Updated {formatShortDate(expense.updatedAt)}
-            </p>
             {expense.splits.length > 0 && (
               <p className="mt-1 text-xs text-accent">Split across {expense.splits.length} people</p>
             )}

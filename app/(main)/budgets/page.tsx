@@ -490,7 +490,6 @@ function BudgetTable({
           <th className="p-3 tabular-nums">Spent</th>
           <th className="p-3 tabular-nums">Remaining</th>
           <th className="p-3">Recurring</th>
-          <th className="p-3">Updated</th>
           <th className="p-3" />
         </tr>
       </thead>
@@ -507,9 +506,6 @@ function BudgetTable({
             <td className="p-3 tabular-nums" data-label="Spent"><AmountText value={budget.spent} /></td>
             <td className="p-3 tabular-nums" data-label="Remaining"><AmountText value={budget.remaining} tone="balance" /></td>
             <td className="p-3" data-label="Recurring">{budget.isRecurring ? "Yes" : "No"}</td>
-            <td className="p-3 text-[var(--muted)]" data-label="Updated">
-              {new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric" }).format(budget.updatedAt)}
-            </td>
             <td className="p-3 text-right" data-label="Actions" data-actions-cell="true">
               <div className="flex items-center justify-end gap-3">
                 <button

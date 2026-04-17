@@ -206,7 +206,6 @@ export default function LoansPage() {
                     <p className="text-xs text-[var(--muted)]">
                       {loan.type === LoanType.RECEIVABLE ? "They owe you" : "You owe them"}
                     </p>
-                    <p className="mt-1 text-xs text-[var(--muted)]">Updated {formatShortDate(loan.updatedAt)}</p>
                   </div>
                   <div className="text-right text-sm">
                     <p className="tabular-nums">Total: <AmountText value={loan.totalAmount} /></p>
