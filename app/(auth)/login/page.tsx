@@ -8,6 +8,7 @@ import Image from "next/image";
 import { toast } from "sonner";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Loader } from "@/components/Loader";
+import { APP_CONFIG } from "@/lib/config/runtime";
 import { useKeyboardShortcuts } from "@/lib/hooks/useKeyboardShortcuts";
 
 export default function LoginPage() {
@@ -182,7 +183,7 @@ export default function LoginPage() {
             <div className="exp-auth-brand-row">
               <Image
                 src="/Logo.PNG"
-                alt="Expense Tracker Logo"
+                alt={`${APP_CONFIG.name} logo`}
                 width={44}
                 height={44}
                 className="exp-auth-logo"
@@ -190,7 +191,7 @@ export default function LoginPage() {
               />
               <ThemeToggle size="sm" />
             </div>
-            <div className="exp-auth-brand-name">Expense Tracker</div>
+            <div className="exp-auth-brand-name">{APP_CONFIG.name}</div>
           </div>
 
           <div className="exp-auth-card">

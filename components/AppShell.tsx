@@ -8,6 +8,7 @@ import { useEffect, useId, useRef, useState } from "react";
 import { Avatar } from "@/components/Avatar";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { APP_CONFIG } from "@/lib/config/runtime";
 
 const links = [
   { href: "/dashboard", label: "Dashboard" },
@@ -265,13 +266,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </div>
           <Image
             src="/Logo.PNG"
-            alt="Expense Tracker"
+            alt={`${APP_CONFIG.name} logo`}
             width={32}
             height={32}
             className="h-8 w-8 rounded"
             priority
           />
-          <span className="hidden min-w-0 truncate whitespace-nowrap font-semibold tracking-tight text-lg sm:inline">Expense Tracker</span>
+          <span className="hidden min-w-0 truncate whitespace-nowrap font-semibold tracking-tight text-lg sm:inline">{APP_CONFIG.name}</span>
         </div>
         <div className="flex shrink-0 items-center gap-2">
           <ThemeToggle size="sm" />
@@ -329,7 +330,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <ConfirmDialog
         open={logoutOpen}
         title="Sign out?"
-        description="You will be logged out of Expense Tracker and returned to the login screen."
+        description={`You will be logged out of ${APP_CONFIG.name} and returned to the login screen.`}
         confirmText="Sign out"
         tone="danger"
         onClose={() => setLogoutOpen(false)}

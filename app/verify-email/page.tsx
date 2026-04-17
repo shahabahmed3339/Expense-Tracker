@@ -5,6 +5,7 @@ import Image from "next/image";
 import { useEffect, useState } from "react";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Loader } from "@/components/Loader";
+import { APP_CONFIG } from "@/lib/config/runtime";
 import { use } from 'react';
 
 function VerifyEmailClient({ token }: { token: string | null | undefined }) {
@@ -49,7 +50,7 @@ function VerifyEmailClient({ token }: { token: string | null | undefined }) {
         <div className="exp-auth-brand-row">
           <Image
             src="/Logo.PNG"
-            alt="Expense Tracker Logo"
+            alt={`${APP_CONFIG.name} logo`}
             width={44}
             height={44}
             className="exp-auth-logo"
@@ -57,7 +58,7 @@ function VerifyEmailClient({ token }: { token: string | null | undefined }) {
           />
           <ThemeToggle size="sm" />
         </div>
-        <div className="exp-auth-brand-name">Expense Tracker</div>
+        <div className="exp-auth-brand-name">{APP_CONFIG.name}</div>
       </div>
 
       <div className="exp-auth-card">

@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Loader } from "@/components/Loader";
+import { APP_CONFIG } from "@/lib/config/runtime";
 import { getPasswordValidationMessage, validatePassword } from "@/lib/auth/password";
 import { useKeyboardShortcuts } from "@/lib/hooks/useKeyboardShortcuts";
 import { toast } from "sonner";
@@ -112,7 +113,7 @@ export default function SignupPage() {
         <div className="exp-auth-brand-row">
           <Image
             src="/Logo.PNG"
-            alt="Expense Tracker Logo"
+            alt={`${APP_CONFIG.name} logo`}
             width={44}
             height={44}
             className="exp-auth-logo"
@@ -120,7 +121,7 @@ export default function SignupPage() {
           />
           <ThemeToggle size="sm" />
         </div>
-        <div className="exp-auth-brand-name">Expense Tracker</div>
+        <div className="exp-auth-brand-name">{APP_CONFIG.name}</div>
       </div>
 
       <div className="exp-auth-card">

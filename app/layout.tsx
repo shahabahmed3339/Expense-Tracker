@@ -2,11 +2,12 @@ import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { Providers } from "@/components/Providers";
+import { APP_CONFIG } from "@/lib/config/runtime";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
 
 export const metadata: Metadata = {
-  title: "Expense Tracker",
+  title: APP_CONFIG.name,
   description: "Personal budgeting, expenses, loans, and splits",
 };
 
