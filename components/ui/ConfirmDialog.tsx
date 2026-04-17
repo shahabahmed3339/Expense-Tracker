@@ -47,11 +47,11 @@ export function ConfirmDialog({
 
   return createPortal(
     <div
-      className="motion-fade-in fixed inset-0 z-50 flex items-end justify-center bg-[var(--overlay)] p-3 sm:items-center sm:p-4"
+      className="motion-fade-in fixed inset-0 z-50 flex justify-center bg-[var(--overlay)] items-center p-4"
       onClick={onClose}
     >
       <div
-        className="motion-dialog-in dialog-surface w-full max-w-md rounded-t-2xl border border-[var(--border)] bg-[var(--card)] p-5 sm:rounded-2xl"
+        className="motion-dialog-in dialog-surface w-full max-w-md border border-[var(--border)] bg-[var(--card)] p-5 rounded-2xl"
         role="alertdialog"
         aria-modal="true"
         aria-labelledby="confirm-dialog-title"

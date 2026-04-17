@@ -10,12 +10,14 @@ export function Modal({
   title,
   children,
   onConfirm,
+  width,
 }: {
   open: boolean;
   onClose: () => void;
   title?: string;
   children: React.ReactNode;
   onConfirm?: () => void;
+  width?: string;
 }) {
   const [mounted, setMounted] = useState(false);
 
@@ -39,11 +41,14 @@ export function Modal({
 
   return createPortal(
     <div
-      className="motion-fade-in fixed inset-0 z-50 flex items-end justify-center bg-[var(--overlay)] p-3 sm:items-center sm:p-4"
+      className="motion-fade-in fixed inset-0 z-50 flex justify-center bg-[var(--overlay)] items-center p-4"
       onClick={onClose}
     >
       <div
-        className="motion-dialog-in dialog-surface flex max-h-[90dvh] w-full max-w-md flex-col overflow-hidden rounded-t-xl border border-[var(--border)] bg-[var(--card)] sm:rounded-xl"
+        className={`motion-dialog-in dialog-surface flex max-h-[90dvh] w-full flex-col overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--card)] ${
+          width ? "" : "max-w-md"
+        }`}
+        style={width ? { maxWidth: `${width}` } : undefined}
         role="dialog"
         aria-modal="true"
         onClick={(event) => event.stopPropagation()}
@@ -60,7 +65,7 @@ export function Modal({
           <button
             type="button"
             onClick={onClose}
-            className="w-full min-h-11 rounded-md border border-[var(--border)] px-3 py-2.5 text-sm text-[var(--fg)] transition-colors hover:bg-[var(--nav-hover)] sm:min-h-0 sm:py-2"
+            className="w-full rounded-md border border-[var(--border)] px-3 text-sm text-[var(--fg)] transition-colors hover:bg-[var(--nav-hover)] min-h-0 py-2"
             aria-label="Close dialog"
             title="Close"
           >
