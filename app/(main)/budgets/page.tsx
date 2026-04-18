@@ -370,7 +370,7 @@ export default function BudgetsPage() {
         open={!!selectedBudgetId}
         onClose={() => setSelectedBudgetId(null)}
         title={budgetDetails ? `${budgetDetails.budget.category.name} details` : "Budget details"}
-        width="800px"
+        maxWidth="800px"
       >
         {isBudgetDetailsLoading || !budgetDetails ? (
           <div className="flex min-h-32 items-center justify-center">

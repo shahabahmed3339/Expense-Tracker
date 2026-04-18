@@ -10,14 +10,14 @@ export function Modal({
   title,
   children,
   onConfirm,
-  width,
+  maxWidth,
 }: {
   open: boolean;
   onClose: () => void;
   title?: string;
   children: React.ReactNode;
   onConfirm?: () => void;
-  width?: string;
+  maxWidth?: string;
 }) {
   const [mounted, setMounted] = useState(false);
 
@@ -45,10 +45,7 @@ export function Modal({
       onClick={onClose}
     >
       <div
-        className={`motion-dialog-in dialog-surface flex max-h-[90dvh] w-full flex-col overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--card)] ${
-          width ? "" : "max-w-md"
-        }`}
-        style={width ? { maxWidth: `${width}` } : undefined}
+        className={`motion-dialog-in dialog-surface flex max-h-[90dvh] w-full flex-col overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--card)] max-w-${maxWidth ? `[${maxWidth}]` : "md" }`}
         role="dialog"
         aria-modal="true"
         onClick={(event) => event.stopPropagation()}
