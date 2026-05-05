@@ -1,7 +1,6 @@
 import nodemailer from "nodemailer";
 import fs from "fs";
 import path from "path";
-import { fileURLToPath } from "url";
 import { google } from "googleapis";
 import { APP_CONFIG, AUTH_CONFIG, EMAIL_CONFIG } from "@/lib/config/runtime";
 import { AUTH_EMAIL_COPY } from "@/server/config/auth";
@@ -157,29 +156,14 @@ export async function sendEmailViaGmailAPI(payload: EmailPayload) {
 }
 
 const logoCid = EMAIL_CONFIG.logoCid;
+const logoPath = path.join(process.cwd(), "public", "Logo.PNG");
 
 function resolveLogoPath(): string | null {
-  const currentFileDir = path.dirname(fileURLToPath(import.meta.url));
-  const possiblePaths = [
-    path.join(process.cwd(), "public", "Logo.PNG"),
-    path.join(process.cwd(), "public", "logo.png"),
-    path.join(process.cwd(), "..", "public", "Logo.PNG"),
-    path.join(process.cwd(), "..", "public", "logo.png"),
-    path.join(currentFileDir, "..", "..", "public", "Logo.PNG"),
-    path.join(currentFileDir, "..", "..", "public", "logo.png"),
-  ];
-
-  for (const logoPath of possiblePaths) {
-    try {
-      if (fs.existsSync(logoPath)) {
-        return logoPath;
-      }
-    } catch {
-      continue;
-    }
+  try {
+    return fs.existsSync(logoPath) ? logoPath : null;
+  } catch {
+    return null;
   }
-
-  return null;
 }
 
 function getLogoSrc(): string {

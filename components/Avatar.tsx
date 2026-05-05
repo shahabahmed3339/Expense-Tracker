@@ -1,5 +1,17 @@
 "use client";
 
+import Image from "next/image";
+
+const avatarDimensions = {
+  sm: 32,
+  md: 40,
+  lg: 56,
+} as const;
+
+function passthroughLoader({ src }: { src: string }) {
+  return src;
+}
+
 export function Avatar({
   name,
   image,
@@ -25,9 +37,13 @@ export function Avatar({
 
   if (image?.trim()) {
     return (
-      <img
+      <Image
         src={image}
+        loader={passthroughLoader}
+        unoptimized
         alt={name ? `${name} avatar` : "User avatar"}
+        width={avatarDimensions[size]}
+        height={avatarDimensions[size]}
         className={`${sizes[size]} rounded-full border border-[var(--border)] object-cover`}
       />
     );
