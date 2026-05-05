@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { VALIDATION_MESSAGES } from "@/lib/config/runtime";
 import { router, protectedProcedure } from "../trpc";
 import {
   createExpense,
@@ -22,6 +23,11 @@ export const expenseRouter = router({
       z
         .object({
           cursor: z.string().optional().nullable(),
+          month: z
+            .string()
+            .regex(/^\d{4}-\d{2}$/, VALIDATION_MESSAGES.invalidMonthFormat)
+            .optional()
+            .nullable(),
           take: z.number().min(1).max(100).optional(),
         })
         .passthrough(),
@@ -29,6 +35,7 @@ export const expenseRouter = router({
     .query(({ ctx, input }) =>
       listExpenses(ctx.prisma, ctx.session.user.id, {
         cursor: input.cursor ?? undefined,
+        month: input.month ?? undefined,
         take: input.take,
       }),
     ),

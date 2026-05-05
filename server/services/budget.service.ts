@@ -1,18 +1,8 @@
 import type { PrismaClient } from "@prisma/client";
 import { TRPCError } from "@trpc/server";
 import { remainingBudget } from "@/lib/calculations/budget";
-import { VALIDATION_MESSAGES } from "@/lib/config/runtime";
+import { monthRange } from "@/lib/dates/month";
 import { getNetCategorySpendForRange } from "./expense.service";
-
-function monthRange(month: string) {
-  const [y, m] = month.split("-").map(Number);
-  if (!y || !m || m < 1 || m > 12) {
-    throw new TRPCError({ code: "BAD_REQUEST", message: VALIDATION_MESSAGES.invalidMonthFormat });
-  }
-  const start = new Date(Date.UTC(y, m - 1, 1));
-  const end = new Date(Date.UTC(y, m, 1));
-  return { start, end };
-}
 
 export async function ensureRecurringBudgetsForMonth(
   prisma: PrismaClient,
@@ -141,7 +131,7 @@ export async function getBudgetDetails(prisma: PrismaClient, userId: string, id:
     throw new TRPCError({ code: "NOT_FOUND", message: "Budget not found" });
   }
 
-  const { start, end } = monthRange(budget.month);
+  const { start, end } = safeMonthRange(budget.month);
   const expenses = await prisma.expense.findMany({
     where: {
       userId,
@@ -174,7 +164,7 @@ export async function budgetVsActualForMonth(
 ) {
   await ensureRecurringBudgetsForMonth(prisma, userId, month);
 
-  const { start, end } = monthRange(month);
+  const { start, end } = safeMonthRange(month);
   const budgets = await prisma.budget.findMany({
     where: { userId, month },
     include: { category: true },
@@ -197,4 +187,15 @@ export async function budgetVsActualForMonth(
   );
 
   return rows;
+}
+
+function safeMonthRange(month: string) {
+  try {
+    return monthRange(month);
+  } catch (error) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: error instanceof Error ? error.message : "Invalid month format",
+    });
+  }
 }

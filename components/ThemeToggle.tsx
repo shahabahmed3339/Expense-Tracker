@@ -1,7 +1,7 @@
 "use client";
 
 import { useTheme } from "next-themes";
-import { useEffect, useState } from "react";
+import { useHydrated } from "@/lib/hooks/useHydrated";
 
 const sizes = {
   default: "h-9 w-9",
@@ -15,14 +15,12 @@ export function ThemeToggle({
   className?: string;
   size?: keyof typeof sizes;
 }) {
-  const [mounted, setMounted] = useState(false);
+  const hydrated = useHydrated();
   const { resolvedTheme, setTheme } = useTheme();
-
-  useEffect(() => setMounted(true), []);
 
   const dim = sizes[size];
 
-  if (!mounted) {
+  if (!hydrated) {
     return (
       <span
         className={`inline-flex ${dim} shrink-0 rounded-lg border border-[var(--border)] bg-[var(--card)] ${className}`}

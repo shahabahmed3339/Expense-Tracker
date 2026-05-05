@@ -1,6 +1,6 @@
 "use client";
 
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { api } from "@/lib/trpc";
 import { parseAmountInput } from "@/lib/formatting/currency";
 import { InlineCreateCategory } from "@/components/dependencies/InlineCreateCategory";
@@ -19,11 +19,13 @@ export function ExpenseForm({
   onCreated,
   expenseId,
   initialValues,
+  defaultDate,
 }: {
   onSuccess?: () => void;
   onCreated?: (expenseId: string) => void;
   expenseId?: string;
   initialValues?: ExpenseFormValues;
+  defaultDate?: string;
 }) {
   const utils = api.useUtils();
   const { data: categories } = api.category.list.useQuery();
@@ -49,15 +51,16 @@ export function ExpenseForm({
     onError: (error) => toast.error(error.message),
   });
 
-  const { register, handleSubmit, reset, getValues, setValue, watch } = useForm<ExpenseFormValues>({
+  const { control, register, handleSubmit, reset, getValues, setValue } = useForm<ExpenseFormValues>({
     defaultValues:
       initialValues ?? {
         amount: "",
         categoryId: "",
-        date: new Date().toISOString().slice(0, 10),
+        date: defaultDate ?? new Date().toISOString().slice(0, 10),
         note: "",
       },
   });
+  const amountValue = useWatch({ control, name: "amount" });
 
   return (
     <form
@@ -101,7 +104,7 @@ export function ExpenseForm({
       <div>
         <label className="mb-1 block text-xs text-[var(--muted)]">Amount</label>
         <MoneyInput
-          value={watch("amount")}
+          value={amountValue ?? ""}
           onChange={(value) => setValue("amount", value, { shouldDirty: true })}
           required
         />

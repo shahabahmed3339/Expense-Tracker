@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
+import { useHydrated } from "@/lib/hooks/useHydrated";
 import { useKeyboardShortcuts } from "@/lib/hooks/useKeyboardShortcuts";
 
 export function Modal({
@@ -19,12 +19,7 @@ export function Modal({
   onConfirm?: () => void;
   maxWidth?: string;
 }) {
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-    return () => setMounted(false);
-  }, []);
+  const hydrated = useHydrated();
 
   useKeyboardShortcuts([
     {
@@ -37,7 +32,7 @@ export function Modal({
     }] : []),
   ]);
 
-  if (!open || !mounted) return null;
+  if (!open || !hydrated) return null;
 
   return createPortal(
     <div

@@ -1,7 +1,7 @@
 import type { PrismaClient } from "@prisma/client";
 import { TRPCError } from "@trpc/server";
 import { sumFloats } from "@/lib/calculations/split";
-import { VALIDATION_MESSAGES } from "@/lib/config/runtime";
+import { monthRange } from "@/lib/dates/month";
 
 type SplitInput = {
   personId?: string | null;
@@ -25,22 +25,12 @@ export type NetTrendRow = {
   amount: number;
 };
 
-function monthRange(month: string) {
-  const [y, m] = month.split("-").map(Number);
-  if (!y || !m || m < 1 || m > 12) {
-    throw new TRPCError({ code: "BAD_REQUEST", message: VALIDATION_MESSAGES.invalidMonthFormat });
-  }
-  const start = new Date(Date.UTC(y, m - 1, 1));
-  const end = new Date(Date.UTC(y, m, 1));
-  return { start, end };
-}
-
 export async function calculateMonthlyExpenseTotal(
   prisma: PrismaClient,
   userId: string,
   month: string,
 ) {
-  const { start, end } = monthRange(month);
+  const { start, end } = safeMonthRange(month);
   return calculateNetExpenseTotalForRange(prisma, userId, start, end);
 }
 
@@ -152,11 +142,22 @@ export async function getNetCategorySpendForRange(
 export async function listExpenses(
   prisma: PrismaClient,
   userId: string,
-  opts: { cursor?: string; take?: number } = {},
+  opts: { cursor?: string; take?: number; month?: string } = {},
 ) {
   const take = Math.min(opts.take ?? 20, 100);
+  const monthFilter = opts.month ? safeMonthRange(opts.month) : null;
   const rows = await prisma.expense.findMany({
-    where: { userId },
+    where: {
+      userId,
+      ...(monthFilter
+        ? {
+            date: {
+              gte: monthFilter.start,
+              lt: monthFilter.end,
+            },
+          }
+        : {}),
+    },
     include: { category: true, splits: { include: { person: true } } },
     orderBy: [{ updatedAt: "desc" }, { date: "desc" }],
     take: take + 1,
@@ -168,6 +169,17 @@ export async function listExpenses(
     nextCursor = extra?.id;
   }
   return { items: rows, nextCursor };
+}
+
+function safeMonthRange(month: string) {
+  try {
+    return monthRange(month);
+  } catch (error) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: error instanceof Error ? error.message : "Invalid month format",
+    });
+  }
 }
 
 export async function createExpense(

@@ -86,7 +86,7 @@ export default function SplitsPage() {
     onError: (e) => toast.error(e.message),
   });
 
-  const expenses = listData?.items ?? [];
+  const expenses = useMemo(() => listData?.items ?? [], [listData?.items]);
   const expense = useMemo(() => expenses.find((entry) => entry.id === expenseId), [expenses, expenseId]);
   const expensesWithSplits = useMemo(() => expenses.filter((entry) => entry.splits.length > 0), [expenses]);
   const filteredExpensesWithSplits = useMemo(() => {
@@ -541,7 +541,7 @@ export default function SplitsPage() {
 
               {mode === "custom" && (
                 <div className="space-y-2">
-                  <p className="text-xs text-[var(--muted)]">Set each participant's share. Mark paid for people who already settled.</p>
+                  <p className="text-xs text-[var(--muted)]">Set each participant&apos;s share. Mark paid for people who already settled.</p>
                   {!hasOtherPeople ? (
                     <div className="space-y-3">
                       <EmptyState text="Add people before entering custom split amounts." />

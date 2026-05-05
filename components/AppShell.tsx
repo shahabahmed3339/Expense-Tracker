@@ -4,8 +4,9 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useEffectEvent, useId, useRef, useState } from "react";
 import { Avatar } from "@/components/Avatar";
+import { PWAInstallButton } from "@/components/PWAInstallButton";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { APP_CONFIG } from "@/lib/config/runtime";
@@ -217,19 +218,22 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { data: session } = useSession();
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [desktopSidebarOpen, setDesktopSidebarOpen] = useState(true);
-  const [logoutOpen, setLogoutOpen] = useState(false);
-
-  useEffect(() => {
-    setMobileOpen(false);
-  }, [pathname]);
-
-  useEffect(() => {
-    const stored = window.localStorage.getItem("expense-tracker-sidebar-open");
-    if (stored !== null) {
-      setDesktopSidebarOpen(stored === "true");
+  const [desktopSidebarOpen, setDesktopSidebarOpen] = useState(() => {
+    if (typeof window === "undefined") {
+      return true;
     }
-  }, []);
+
+    const stored = window.localStorage.getItem("expense-tracker-sidebar-open");
+    return stored === null ? true : stored === "true";
+  });
+  const [logoutOpen, setLogoutOpen] = useState(false);
+  const closeMobileMenu = useEffectEvent(() => {
+    setMobileOpen(false);
+  });
+
+  useEffect(() => {
+    closeMobileMenu();
+  }, [pathname]);
 
   useEffect(() => {
     window.localStorage.setItem("expense-tracker-sidebar-open", String(desktopSidebarOpen));
@@ -275,6 +279,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <span className="hidden min-w-0 truncate whitespace-nowrap font-semibold tracking-tight text-lg sm:inline">{APP_CONFIG.name}</span>
         </div>
         <div className="flex shrink-0 items-center gap-2">
+          <PWAInstallButton />
           <ThemeToggle size="sm" />
           <AccountMenu
             name={session?.user?.name}

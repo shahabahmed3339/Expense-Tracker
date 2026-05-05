@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
+import { useHydrated } from "@/lib/hooks/useHydrated";
 import { useKeyboardShortcuts } from "@/lib/hooks/useKeyboardShortcuts";
 
 type ConfirmDialogProps = {
@@ -25,12 +25,7 @@ export function ConfirmDialog({
   onConfirm,
   onClose,
 }: ConfirmDialogProps) {
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-    return () => setMounted(false);
-  }, []);
+  const hydrated = useHydrated();
 
   useKeyboardShortcuts([
     {
@@ -43,7 +38,7 @@ export function ConfirmDialog({
     },
   ]);
 
-  if (!open || !mounted) return null;
+  if (!open || !hydrated) return null;
 
   return createPortal(
     <div

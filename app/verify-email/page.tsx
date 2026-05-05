@@ -3,25 +3,16 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useEffect, useState } from "react";
+import { use } from "react";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Loader } from "@/components/Loader";
 import { APP_CONFIG } from "@/lib/config/runtime";
-import { use } from 'react';
 
 function VerifyEmailClient({ token }: { token: string | null | undefined }) {
-  const [state, setState] = useState<"loading" | "success" | "error">("loading");
-  const [message, setMessage] = useState("Verifying your email...");
+  const [result, setResult] = useState<{ state: "success" | "error"; message: string } | null>(null);
 
   useEffect(() => {
-    if (token === undefined) {
-      setState("loading");
-      setMessage("Verifying your email...");
-      return;
-    }
-
     if (!token) {
-      setState("error");
-      setMessage("Verification token is missing.");
       return;
     }
 
@@ -35,14 +26,23 @@ function VerifyEmailClient({ token }: { token: string | null | undefined }) {
         if (!response.ok) {
           throw new Error(body.error ?? "Verification failed");
         }
-        setState("success");
-        setMessage("Your email has been verified. You can sign in now.");
+        setResult({
+          state: "success",
+          message: "Your email has been verified. You can sign in now.",
+        });
       })
       .catch((error: Error) => {
-        setState("error");
-        setMessage(error.message);
+        setResult({ state: "error", message: error.message });
       });
   }, [token]);
+
+  const state = token === undefined ? "loading" : !token ? "error" : result?.state ?? "loading";
+  const message =
+    token === undefined
+      ? "Verifying your email..."
+      : !token
+        ? "Verification token is missing."
+        : result?.message ?? "Verifying your email...";
 
   return (
     <div className="exp-auth-root">

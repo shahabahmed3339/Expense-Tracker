@@ -5,9 +5,11 @@ import { api } from "@/lib/trpc";
 import { CATEGORY_TYPE_LABELS } from "@/lib/constants/domain";
 import { COMMON_UI } from "@/lib/constants/ui";
 import { formatAmount, parseAmountInput } from "@/lib/formatting/currency";
+import { currentMonthValue } from "@/lib/dates/month";
 import { formatShortDate } from "@/lib/formatting/date";
 import { groupBy } from "@/lib/collections/grouping";
 import { Button } from "@/components/ui/Button";
+import { MonthInput } from "@/components/ui/MonthInput";
 import { Modal } from "@/components/ui/Modal";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { InlineCreateCategory } from "@/components/dependencies/InlineCreateCategory";
@@ -19,13 +21,8 @@ import { Loader } from "@/components/Loader";
 import { ErrorState } from "@/components/ErrorState";
 import { toast } from "sonner";
 
-function currentMonth() {
-  const date = new Date();
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
-}
-
 export default function BudgetsPage() {
-  const [month, setMonth] = useState(currentMonth);
+  const [month, setMonth] = useState(currentMonthValue);
   const [open, setOpen] = useState(false);
   const [amount, setAmount] = useState("");
   const [categoryId, setCategoryId] = useState("");
@@ -137,15 +134,7 @@ export default function BudgetsPage() {
           <p className="mt-1 text-sm text-[var(--muted)]">Plan by category and month, ordered by most recently updated.</p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
-          <label className="text-sm text-[var(--muted)]">
-            Month{" "}
-            <input
-              type="month"
-              value={month}
-              onChange={(event) => setMonth(event.target.value)}
-              className="ml-2 rounded-md border border-[var(--border)] bg-[var(--bg)] px-2 py-1 text-sm"
-            />
-          </label>
+          <MonthInput value={month} onChange={setMonth} />
           <Button onClick={() => setOpen(true)}>Add budget</Button>
         </div>
       </div>

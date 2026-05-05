@@ -29,16 +29,6 @@ export default function SignupPage() {
     }
   }, [status]);
 
-  if (status === "loading" || status === "authenticated") {
-    return (
-      <div className="exp-auth-root">
-        <div className="exp-auth-loading">
-          <Loader />
-        </div>
-      </div>
-    );
-  }
-
   const passwordState = validatePassword(password);
   const passwordError = getPasswordValidationMessage(password);
   const confirmError = confirmPassword && password !== confirmPassword ? "Passwords do not match." : null;
@@ -85,6 +75,16 @@ export default function SignupPage() {
       action: handleSubmit,
     },
   ]);
+
+  if (status === "loading" || status === "authenticated") {
+    return (
+      <div className="exp-auth-root">
+        <div className="exp-auth-loading">
+          <Loader />
+        </div>
+      </div>
+    );
+  }
 
   const resendVerification = async () => {
     setResendingVerification(true);

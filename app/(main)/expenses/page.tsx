@@ -3,12 +3,14 @@
 import dynamic from "next/dynamic";
 import { useMemo, useState } from "react";
 import { api } from "@/lib/trpc";
+import { currentMonthValue, monthValueToDate } from "@/lib/dates/month";
 import { formatAmount } from "@/lib/formatting/currency";
 import { formatShortDate } from "@/lib/formatting/date";
 import { groupBy } from "@/lib/collections/grouping";
 import { Modal } from "@/components/ui/Modal";
 import { Button } from "@/components/ui/Button";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { MonthInput } from "@/components/ui/MonthInput";
 import { AmountText } from "@/components/ui/AmountText";
 import { FilterBar, FilterField } from "@/components/ui/FilterBar";
 import { EmptyState } from "@/components/EmptyState";
@@ -25,6 +27,7 @@ const LazyExpenseForm = dynamic(
 );
 
 export default function ExpensesPage() {
+  const [month, setMonth] = useState(currentMonthValue);
   const [open, setOpen] = useState(false);
   const [editingExpense, setEditingExpense] = useState<{
     id: string;
@@ -36,18 +39,18 @@ export default function ExpensesPage() {
   const [splitFilter, setSplitFilter] = useState<"all" | "split" | "unsplit">("all");
   const [groupByCategory, setGroupByCategory] = useState(true);
 
-  const { data, isLoading, error } = api.expense.list.useQuery({ take: 100 });
+  const { data, isLoading, error } = api.expense.list.useQuery({ month, take: 100 });
   const { data: categories } = api.category.list.useQuery();
   const utils = api.useUtils();
 
   const del = api.expense.delete.useMutation({
     onSuccess: async () => {
-      await utils.expense.list.invalidate();
+      await utils.expense.list.invalidate({ month, take: 100 });
       await utils.dashboard.summary.invalidate();
     },
   });
 
-  const items = data?.items ?? [];
+  const items = useMemo(() => data?.items ?? [], [data?.items]);
   const filteredItems = useMemo(() => {
     return items.filter((expense) => {
       const matchesSearch =
@@ -76,14 +79,17 @@ export default function ExpensesPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+      <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Expenses</h1>
           <p className="mt-1 text-sm text-[var(--muted)]">
-            All spending, ordered by most recently updated.
+            Spending for the selected month, ordered by most recently updated.
           </p>
         </div>
-        <Button onClick={() => setOpen(true)}>Add expense</Button>
+        <div className="flex flex-wrap items-center gap-3">
+          <MonthInput value={month} onChange={setMonth} />
+          <Button onClick={() => setOpen(true)}>Add expense</Button>
+        </div>
       </div>
 
       <FilterBar>
@@ -164,7 +170,7 @@ export default function ExpensesPage() {
       )}
 
       <Modal open={open} onClose={() => setOpen(false)} title="New expense">
-        <LazyExpenseForm onSuccess={() => setOpen(false)} />
+        <LazyExpenseForm onSuccess={() => setOpen(false)} defaultDate={monthValueToDate(month)} />
       </Modal>
 
       <Modal
