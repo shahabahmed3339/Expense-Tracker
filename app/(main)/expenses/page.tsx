@@ -3,7 +3,7 @@
 import dynamic from "next/dynamic";
 import { useMemo, useState } from "react";
 import { api } from "@/lib/trpc";
-import { currentMonthValue, monthValueToDate } from "@/lib/dates/month";
+import { currentMonthValue } from "@/lib/dates/month";
 import { formatAmount } from "@/lib/formatting/currency";
 import { formatShortDate } from "@/lib/formatting/date";
 import { groupBy } from "@/lib/collections/grouping";
@@ -170,7 +170,7 @@ export default function ExpensesPage() {
       )}
 
       <Modal open={open} onClose={() => setOpen(false)} title="New expense">
-        <LazyExpenseForm onSuccess={() => setOpen(false)} defaultDate={monthValueToDate(month)} />
+        <LazyExpenseForm onSuccess={() => setOpen(false)} />
       </Modal>
 
       <Modal

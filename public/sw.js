@@ -1,4 +1,4 @@
-const CACHE_NAME = "expense-tracker-v1";
+const CACHE_NAME = "expense-tracker-v2";
 const OFFLINE_URL = "/offline";
 const STATIC_ASSETS = [
   OFFLINE_URL,
@@ -33,6 +33,14 @@ self.addEventListener("fetch", (event) => {
   }
 
   const requestUrl = new URL(event.request.url);
+
+  if (
+    requestUrl.origin === self.location.origin &&
+    (requestUrl.pathname.startsWith("/api/") || requestUrl.pathname.startsWith("/auth/"))
+  ) {
+    event.respondWith(fetch(event.request));
+    return;
+  }
 
   if (event.request.mode === "navigate") {
     event.respondWith(
