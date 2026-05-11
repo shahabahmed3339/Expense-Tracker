@@ -1,6 +1,6 @@
 # Expense Tracker
 
-A Next.js expense tracking app with budgets, expenses, loans, groups, splits, authentication, Prisma, and PWA support.
+A Next.js expense tracking app with budgets, expenses, loans, persons, splits, authentication, Prisma, and PWA support.
 
 ## Development
 

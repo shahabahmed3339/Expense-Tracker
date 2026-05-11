@@ -12,7 +12,7 @@ import { Loader } from "@/components/Loader";
 import { ErrorState } from "@/components/ErrorState";
 import { toast } from "sonner";
 
-export default function GroupsPage() {
+export default function PersonsPage() {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [contactFilter, setContactFilter] = useState<"all" | "with" | "without">("all");
@@ -58,7 +58,7 @@ export default function GroupsPage() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Groups</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">Persons</h1>
           <p className="mt-1 text-sm text-[var(--muted)]">People you split expenses with or track in loans, ordered by most recently updated.</p>
         </div>
         <Button onClick={() => setOpen(true)}>Add person</Button>

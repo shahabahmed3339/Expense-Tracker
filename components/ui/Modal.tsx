@@ -30,7 +30,7 @@ export function Modal({
       key: "Enter",
       action: onConfirm,
     }] : []),
-  ]);
+  ], open);
 
   if (!open || !hydrated) return null;
 

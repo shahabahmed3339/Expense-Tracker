@@ -16,7 +16,7 @@ const links = [
   { href: "/expenses", label: "Expenses" },
   { href: "/budgets", label: "Budgets" },
   { href: "/loans", label: "Loans" },
-  { href: "/groups", label: "Groups" },
+  { href: "/persons", label: "Persons" },
   { href: "/categories", label: "Categories" },
   { href: "/splits", label: "Splits" },
 ];

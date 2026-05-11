@@ -25,16 +25,12 @@ export function InlineCreatePanel({
   onSubmit: () => void;
   children: React.ReactNode;
 }) {
-  useKeyboardShortcuts(
-    open
-      ? [
-          {
-            key: "Enter",
-            action: onSubmit,
-          },
-        ]
-      : [],
-  );
+  useKeyboardShortcuts([
+    {
+      key: "Enter",
+      action: onSubmit,
+    },
+  ], open);
 
   return (
     <div className="space-y-2 rounded-lg border border-dashed border-[var(--border)] p-3">

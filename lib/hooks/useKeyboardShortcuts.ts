@@ -10,8 +10,10 @@ export function useKeyboardShortcuts(shortcuts: Array<{
   metaKey?: boolean;
   action: () => void;
   preventDefault?: boolean;
-}>) {
+}>, enabled = true) {
   useEffect(() => {
+    if (!enabled) return;
+
     const handleKeyDown = (event: KeyboardEvent) => {
       for (const shortcut of shortcuts) {
         const {
@@ -42,5 +44,5 @@ export function useKeyboardShortcuts(shortcuts: Array<{
 
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [shortcuts]);
+  }, [enabled, shortcuts]);
 }

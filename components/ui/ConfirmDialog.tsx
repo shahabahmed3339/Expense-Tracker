@@ -36,7 +36,7 @@ export function ConfirmDialog({
       key: "Enter",
       action: onConfirm,
     },
-  ]);
+  ], open);
 
   if (!open || !hydrated) return null;
 
