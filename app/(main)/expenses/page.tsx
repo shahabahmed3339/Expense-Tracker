@@ -29,6 +29,7 @@ const LazyExpenseForm = dynamic(
 export default function ExpensesPage() {
   const [month, setMonth] = useState(currentMonthValue);
   const [open, setOpen] = useState(false);
+  const [newExpenseValues, setNewExpenseValues] = useState<ExpenseFormValues | null>(null);
   const [editingExpense, setEditingExpense] = useState<{
     id: string;
     values: ExpenseFormValues;
@@ -74,6 +75,25 @@ export default function ExpensesPage() {
     [filteredItems],
   );
 
+  const defaultExpenseDateForMonth = () => {
+    const todayValue = new Date().toISOString().slice(0, 10);
+    return todayValue.startsWith(month) ? todayValue : `${month}-01`;
+  };
+
+  const openNewExpense = (categoryId?: string) => {
+    setNewExpenseValues(
+      categoryId
+        ? {
+            amount: "",
+            categoryId,
+            date: defaultExpenseDateForMonth(),
+            note: "",
+          }
+        : null,
+    );
+    setOpen(true);
+  };
+
   if (isLoading) return <Loader />;
   if (error) return <ErrorState message={error.message} />;
 
@@ -88,7 +108,7 @@ export default function ExpensesPage() {
         </div>
         <div className="flex flex-wrap items-center gap-3">
           <MonthInput value={month} onChange={setMonth} />
-          <Button onClick={() => setOpen(true)}>Add expense</Button>
+          <Button onClick={() => openNewExpense()}>Add expense</Button>
         </div>
       </div>
 
@@ -152,6 +172,9 @@ export default function ExpensesPage() {
                   <h2 className="font-medium">{categoryName}</h2>
                   <p className="text-xs text-[var(--muted)]">{expenses.length} expense entries</p>
                 </div>
+                <Button onClick={() => openNewExpense(expenses[0]?.categoryId)}>
+                  Add expense
+                </Button>
               </div>
               <ExpenseList
                 items={expenses}
@@ -170,7 +193,13 @@ export default function ExpensesPage() {
       )}
 
       <Modal open={open} onClose={() => setOpen(false)} title="New expense">
-        <LazyExpenseForm onSuccess={() => setOpen(false)} />
+        <LazyExpenseForm
+          initialValues={newExpenseValues ?? undefined}
+          onSuccess={() => {
+            setOpen(false);
+            setNewExpenseValues(null);
+          }}
+        />
       </Modal>
 
       <Modal

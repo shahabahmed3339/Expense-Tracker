@@ -1,8 +1,11 @@
 "use client";
 
 import { createPortal } from "react-dom";
+import { useEffect, useRef } from "react";
 import { useHydrated } from "@/lib/hooks/useHydrated";
 import { useKeyboardShortcuts } from "@/lib/hooks/useKeyboardShortcuts";
+
+const modalStack: symbol[] = [];
 
 export function Modal({
   open,
@@ -20,15 +23,40 @@ export function Modal({
   maxWidth?: string;
 }) {
   const hydrated = useHydrated();
+  const modalId = useRef(Symbol("modal"));
+
+  useEffect(() => {
+    if (!open || !hydrated) return;
+
+    const id = modalId.current;
+    modalStack.push(id);
+
+    return () => {
+      const index = modalStack.lastIndexOf(id);
+      if (index >= 0) {
+        modalStack.splice(index, 1);
+      }
+    };
+  }, [hydrated, open]);
+
+  const isTopModal = () => modalStack[modalStack.length - 1] === modalId.current;
 
   useKeyboardShortcuts([
     {
       key: "Escape",
-      action: onClose,
+      action: () => {
+        if (isTopModal()) {
+          onClose();
+        }
+      },
     },
     ...(onConfirm ? [{
       key: "Enter",
-      action: onConfirm,
+      action: () => {
+        if (isTopModal()) {
+          onConfirm();
+        }
+      },
     }] : []),
   ], open);
 

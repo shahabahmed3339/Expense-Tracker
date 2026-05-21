@@ -46,7 +46,7 @@ export default function LoansPage() {
   const [search, setSearch] = useState("");
   const [personFilter, setPersonFilter] = useState("all");
   const [typeFilter, setTypeFilter] = useState<"all" | LoanType>("all");
-  const [statusFilter, setStatusFilter] = useState<"all" | "open" | "settled">("all");
+  const [statusFilter, setStatusFilter] = useState<"all" | "open" | "settled">("open");
 
   const utils = api.useUtils();
   const { data: loans, isLoading, error } = api.loan.list.useQuery();

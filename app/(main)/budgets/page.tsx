@@ -1,5 +1,6 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useMemo, useState } from "react";
 import { api } from "@/lib/trpc";
 import { CATEGORY_TYPE_LABELS } from "@/lib/constants/domain";
@@ -20,6 +21,15 @@ import { EmptyState } from "@/components/EmptyState";
 import { Loader } from "@/components/Loader";
 import { ErrorState } from "@/components/ErrorState";
 import { toast } from "sonner";
+import type { ExpenseFormValues } from "../expenses/components/ExpenseForm";
+
+const LazyExpenseForm = dynamic(
+  () => import("../expenses/components/ExpenseForm").then((mod) => mod.ExpenseForm),
+  {
+    ssr: false,
+    loading: () => <div className="flex min-h-40 items-center justify-center"><Loader /></div>,
+  },
+);
 
 export default function BudgetsPage() {
   const [month, setMonth] = useState(currentMonthValue);
@@ -41,6 +51,11 @@ export default function BudgetsPage() {
     recurring: boolean;
   } | null>(null);
   const [selectedBudgetId, setSelectedBudgetId] = useState<string | null>(null);
+  const [expenseModal, setExpenseModal] = useState<{
+    mode: "create" | "edit";
+    expenseId?: string;
+    initialValues: ExpenseFormValues;
+  } | null>(null);
   const [budgetToDelete, setBudgetToDelete] = useState<string | null>(null);
 
   const utils = api.useUtils();
@@ -122,6 +137,22 @@ export default function BudgetsPage() {
     () => groupBy(filteredRows, (budget) => budget.category.type),
     [filteredRows],
   );
+
+  const refreshBudgetSpend = async () => {
+    await Promise.all([
+      utils.budget.listByMonth.invalidate({ month }),
+      utils.budget.vsActual.invalidate({ month }),
+      selectedBudgetId
+        ? utils.budget.details.invalidate({ id: selectedBudgetId })
+        : Promise.resolve(),
+    ]);
+  };
+
+  const defaultExpenseDateForMonth = () => {
+    const today = new Date();
+    const todayValue = today.toISOString().slice(0, 10);
+    return todayValue.startsWith(month) ? todayValue : `${month}-01`;
+  };
 
   if (isLoading) return <Loader />;
   if (error) return <ErrorState message={error.message} />;
@@ -367,6 +398,28 @@ export default function BudgetsPage() {
           </div>
         ) : (
           <div className="space-y-4">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <p className="text-sm font-medium">{budgetDetails.budget.category.name}</p>
+                <p className="text-xs text-[var(--muted)]">Expenses for {budgetDetails.budget.month}</p>
+              </div>
+              <Button
+                onClick={() =>
+                  setExpenseModal({
+                    mode: "create",
+                    initialValues: {
+                      amount: "",
+                      categoryId: budgetDetails.budget.categoryId,
+                      date: defaultExpenseDateForMonth(),
+                      note: "",
+                    },
+                  })
+                }
+              >
+                Add expense
+              </Button>
+            </div>
+
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="rounded-lg border border-[var(--border)] bg-[var(--bg)] p-3">
                 <p className="text-xs uppercase tracking-wide text-[var(--muted)]">Budget</p>
@@ -403,6 +456,7 @@ export default function BudgetsPage() {
                       <th className="px-3 py-2 font-medium">Amount</th>
                       <th className="px-3 py-2 font-medium">Note</th>
                       <th className="px-3 py-2 font-medium">Split</th>
+                      <th className="px-3 py-2 font-medium">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -416,6 +470,28 @@ export default function BudgetsPage() {
                         <td className="px-3 py-2" data-label="Split">
                           {expense.splits.length > 0 ? `${expense.splits.length} participants` : "No split"}
                         </td>
+                        <td className="px-3 py-2" data-label="Actions" data-actions-cell="true">
+                          <button
+                            type="button"
+                            className="text-sm text-accent hover:underline"
+                            aria-label={`Edit expense ${expense.amount}`}
+                            title="Edit expense"
+                            onClick={() =>
+                              setExpenseModal({
+                                mode: "edit",
+                                expenseId: expense.id,
+                                initialValues: {
+                                  amount: formatAmount(expense.amount),
+                                  categoryId: budgetDetails.budget.categoryId,
+                                  date: new Date(expense.date).toISOString().slice(0, 10),
+                                  note: expense.note ?? "",
+                                },
+                              })
+                            }
+                          >
+                            Edit
+                          </button>
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -423,6 +499,23 @@ export default function BudgetsPage() {
               </div>
             )}
           </div>
+        )}
+      </Modal>
+
+      <Modal
+        open={!!expenseModal}
+        onClose={() => setExpenseModal(null)}
+        title={expenseModal?.mode === "edit" ? "Edit expense" : "New expense"}
+      >
+        {expenseModal && (
+          <LazyExpenseForm
+            expenseId={expenseModal.expenseId}
+            initialValues={expenseModal.initialValues}
+            onSuccess={async () => {
+              await refreshBudgetSpend();
+              setExpenseModal(null);
+            }}
+          />
         )}
       </Modal>
 
