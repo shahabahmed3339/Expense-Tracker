@@ -8,17 +8,19 @@ import { AUTH_API_MESSAGES, AUTH_TIMING } from "@/server/config/auth";
 import { AUTH_RATE_LIMITS } from "@/server/config/rateLimit";
 import { prisma } from "@/server/db/client";
 import { createRateLimitKey, enforceRateLimit } from "@/server/middleware/rateLimit";
+import { verifyTurnstileToken } from "@/server/middleware/turnstile";
 import { getPasswordValidationMessage } from "@/lib/auth/password";
 
 const bodySchema = z.object({
   email: z.string().email(),
   password: z.string().min(8).max(128),
-  name: z.string().max(120).optional(),
+  name: z.string().max(100).optional(),
+  turnstileToken: z.string().optional(),
 });
 
 export async function POST(req: Request) {
   try {
-    const ipLimit = enforceRateLimit(req, AUTH_RATE_LIMITS.registerIp);
+    const ipLimit = await enforceRateLimit(req, AUTH_RATE_LIMITS.registerIp);
     if (ipLimit) return ipLimit;
 
     const json = await req.json();
@@ -26,9 +28,18 @@ export async function POST(req: Request) {
     if (!parsed.success) {
       return NextResponse.json({ error: AUTH_API_MESSAGES.invalidInput }, { status: 400 });
     }
-    const { email, password, name } = parsed.data;
+    const { email, password, name, turnstileToken } = parsed.data;
     const normalized = email.trim().toLowerCase();
-    const emailLimit = enforceRateLimit(req, {
+
+    const turnstileOk = await verifyTurnstileToken(
+      turnstileToken,
+      createRateLimitKey(req),
+    );
+    if (!turnstileOk) {
+      return NextResponse.json({ error: "Bot verification failed" }, { status: 400 });
+    }
+
+    const emailLimit = await enforceRateLimit(req, {
       ...AUTH_RATE_LIMITS.registerEmail,
       key: createRateLimitKey(req, normalized),
     });

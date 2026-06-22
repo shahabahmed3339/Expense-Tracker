@@ -19,6 +19,7 @@ const links = [
   { href: "/persons", label: "Persons" },
   { href: "/categories", label: "Categories" },
   { href: "/splits", label: "Splits" },
+  { href: "/reports", label: "Reports" },
 ];
 
 function SidebarToggleButton({
@@ -260,6 +261,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="h-[100dvh] flex flex-col overflow-hidden">
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-md focus:bg-accent focus:px-3 focus:py-2 focus:text-white"
+      >
+        Skip to content
+      </a>
       <header className="motion-shell sticky top-0 z-30 flex shrink-0 items-center justify-between gap-2 border-b border-[var(--border)] bg-[var(--card)] px-4 py-3 safe-pt">
         <div className="flex items-center gap-3">
           <div className="max-md:hidden">
@@ -327,7 +334,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </div>
         </aside>
 
-        <main className="min-w-0 flex-1 overflow-y-auto px-3 py-4 sm:px-4 md:p-8 md:px-8 lg:mx-auto lg:max-w-6xl lg:w-full safe-pb scroll-container">
+        <main id="main-content" className="min-w-0 flex-1 overflow-y-auto px-3 py-4 sm:px-4 md:p-8 md:px-8 lg:mx-auto lg:max-w-6xl lg:w-full safe-pb scroll-container">
           <div className="motion-page">{children}</div>
         </main>
       </div>

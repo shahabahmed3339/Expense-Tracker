@@ -69,5 +69,18 @@ export async function updateCategory(
 export async function deleteCategory(prisma: PrismaClient, userId: string, id: string) {
   const row = await prisma.category.findFirst({ where: { id, userId } });
   if (!row) throw new TRPCError({ code: "NOT_FOUND", message: "Category not found" });
+
+  const [expenseCount, budgetCount] = await Promise.all([
+    prisma.expense.count({ where: { categoryId: id, userId } }),
+    prisma.budget.count({ where: { categoryId: id, userId } }),
+  ]);
+
+  if (expenseCount > 0 || budgetCount > 0) {
+    throw new TRPCError({
+      code: "CONFLICT",
+      message: "Cannot delete category with linked expenses or budgets",
+    });
+  }
+
   return prisma.category.delete({ where: { id } });
 }

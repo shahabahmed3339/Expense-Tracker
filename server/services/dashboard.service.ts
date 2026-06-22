@@ -1,5 +1,6 @@
 import type { PrismaClient } from "@prisma/client";
 import { ensureRecurringBudgetsForMonth } from "./budget.service";
+import { toNumber } from "@/lib/money";
 import {
   calculateNetExpenseTotalForRange,
   getNetCategorySpendTotals,
@@ -80,15 +81,16 @@ export async function getDashboardSummary(prisma: PrismaClient, userId: string) 
     }),
   ]);
 
-  const budgeted = monthBudgets._sum.amount ?? 0;
+  const budgeted = toNumber(monthBudgets._sum.amount ?? 0);
   const fixedCategories = categoriesByType.find((row) => row.type === "FIXED")?._count._all ?? 0;
   const variableCategories = categoriesByType.find((row) => row.type === "VARIABLE")?._count._all ?? 0;
   const totalCategories = fixedCategories + variableCategories;
 
   const loanSummary = loans.reduce(
     (summary, loan) => {
-      const paid = loan.transactions.reduce((sum, transaction) => sum + transaction.amount, 0);
-      const remaining = Math.max(loan.totalAmount - paid, 0);
+      const paid = loan.transactions.reduce((sum, transaction) => sum + toNumber(transaction.amount), 0);
+      const total = toNumber(loan.totalAmount);
+      const remaining = Math.max(total - paid, 0);
 
       if (loan.type === "RECEIVABLE") {
         summary.receivableOutstanding += remaining;
@@ -142,7 +144,7 @@ export async function getDashboardSummary(prisma: PrismaClient, userId: string) 
     },
     recentExpenses: recentExpenses.map((expense) => ({
       id: expense.id,
-      amount: expense.amount,
+      amount: toNumber(expense.amount),
       date: expense.date,
       categoryName: expense.category.name,
       splitCount: expense.splits.length,

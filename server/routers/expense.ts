@@ -3,7 +3,6 @@ import { VALIDATION_MESSAGES } from "@/lib/config/runtime";
 import { router, protectedProcedure } from "../trpc";
 import {
   createExpense,
-  createExpenseWithSplits,
   deleteExpense,
   listExpenses,
   updateExpense,
@@ -11,7 +10,7 @@ import {
 
 const splitLine = z.object({
   personId: z.string().min(1).optional().nullable(),
-  name: z.string().min(1),
+  name: z.string().min(1).max(100),
   amount: z.number().positive(),
   isSelf: z.boolean().optional(),
   isPaid: z.boolean().optional(),
@@ -20,17 +19,15 @@ const splitLine = z.object({
 export const expenseRouter = router({
   list: protectedProcedure
     .input(
-      z
-        .object({
-          cursor: z.string().optional().nullable(),
-          month: z
-            .string()
-            .regex(/^\d{4}-\d{2}$/, VALIDATION_MESSAGES.invalidMonthFormat)
-            .optional()
-            .nullable(),
-          take: z.number().min(1).max(100).optional(),
-        })
-        .passthrough(),
+      z.object({
+        cursor: z.string().optional().nullable(),
+        month: z
+          .string()
+          .regex(/^\d{4}-\d{2}$/, VALIDATION_MESSAGES.invalidMonthFormat)
+          .optional()
+          .nullable(),
+        take: z.number().min(1).max(100).optional(),
+      }),
     )
     .query(({ ctx, input }) =>
       listExpenses(ctx.prisma, ctx.session.user.id, {
@@ -46,7 +43,7 @@ export const expenseRouter = router({
         amount: z.number().positive(),
         categoryId: z.string().min(1),
         date: z.coerce.date(),
-        note: z.string().optional().nullable(),
+        note: z.string().max(500).optional().nullable(),
       }),
     )
     .mutation(({ ctx, input }) =>
@@ -58,26 +55,6 @@ export const expenseRouter = router({
       }),
     ),
 
-  createWithSplits: protectedProcedure
-    .input(
-      z.object({
-        amount: z.number().positive(),
-        categoryId: z.string().min(1),
-        date: z.coerce.date(),
-        note: z.string().optional().nullable(),
-        splits: z.array(splitLine).min(1),
-      }),
-    )
-    .mutation(({ ctx, input }) =>
-      createExpenseWithSplits(ctx.prisma, ctx.session.user.id, {
-        amount: input.amount,
-        categoryId: input.categoryId,
-        date: input.date,
-        note: input.note,
-        splits: input.splits,
-      }),
-    ),
-
   update: protectedProcedure
     .input(
       z.object({
@@ -85,7 +62,7 @@ export const expenseRouter = router({
         amount: z.number().positive().optional(),
         categoryId: z.string().min(1).optional(),
         date: z.coerce.date().optional(),
-        note: z.string().optional().nullable(),
+        note: z.string().max(500).optional().nullable(),
       }),
     )
     .mutation(({ ctx, input }) => {
@@ -97,3 +74,6 @@ export const expenseRouter = router({
     .input(z.string().min(1))
     .mutation(({ ctx, input }) => deleteExpense(ctx.prisma, ctx.session.user.id, input)),
 });
+
+// splitLine exported for split router compatibility
+export { splitLine };

@@ -1,14 +1,17 @@
+import { toNumber } from "@/lib/money";
+
 const amountFormatter = new Intl.NumberFormat("en-US", {
   minimumFractionDigits: 2,
   maximumFractionDigits: 2,
 });
 
-export function formatAmount(value: number) {
-  if (!Number.isFinite(value)) {
+export function formatAmount(value: number | string | { toNumber?: () => number }) {
+  const numeric = toNumber(value as number);
+  if (!Number.isFinite(numeric)) {
     return amountFormatter.format(0);
   }
 
-  return amountFormatter.format(value);
+  return amountFormatter.format(numeric);
 }
 
 export function getBalanceColorClass(value: number) {

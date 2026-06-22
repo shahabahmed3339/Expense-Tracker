@@ -2,6 +2,7 @@ import type { PrismaClient } from "@prisma/client";
 import { TRPCError } from "@trpc/server";
 import { remainingBudget } from "@/lib/calculations/budget";
 import { monthRange } from "@/lib/dates/month";
+import { toDecimal, toNumber } from "@/lib/money";
 import { getNetCategorySpendForRange } from "./expense.service";
 
 export async function ensureRecurringBudgetsForMonth(
@@ -25,7 +26,7 @@ export async function ensureRecurringBudgetsForMonth(
     select: { categoryId: true, amount: true },
   });
 
-  const nextBudgets: { userId: string; categoryId: string; month: string; amount: number; isRecurring: true }[] = [];
+  const nextBudgets: { userId: string; categoryId: string; month: string; amount: ReturnType<typeof toDecimal>; isRecurring: true }[] = [];
   const seededCategoryIds = new Set<string>();
 
   for (const budget of recurringBudgets) {
@@ -90,11 +91,11 @@ export async function upsertBudget(
       userId,
       categoryId: data.categoryId,
       month: data.month,
-      amount: data.amount,
+      amount: toDecimal(data.amount),
       isRecurring: data.isRecurring ?? false,
     },
     update: {
-      amount: data.amount,
+      amount: toDecimal(data.amount),
       ...(data.isRecurring !== undefined && { isRecurring: data.isRecurring }),
     },
     include: { category: true },
@@ -111,7 +112,7 @@ export async function updateBudgetAmount(
   if (!row) throw new TRPCError({ code: "NOT_FOUND", message: "Budget not found" });
   return prisma.budget.update({
     where: { id },
-    data: { amount },
+    data: { amount: toDecimal(amount) },
     include: { category: true },
   });
 }
@@ -145,12 +146,12 @@ export async function getBudgetDetails(prisma: PrismaClient, userId: string, id:
     orderBy: [{ updatedAt: "desc" }, { date: "desc" }],
   });
 
-  const spent = expenses.reduce((sum, expense) => sum + expense.amount, 0);
+  const spent = expenses.reduce((sum, expense) => sum + toNumber(expense.amount), 0);
 
   return {
     budget,
     spent,
-    remaining: remainingBudget(budget.amount, spent),
+    remaining: remainingBudget(toNumber(budget.amount), spent),
     expenseCount: expenses.length,
     expenses,
   };
@@ -178,9 +179,9 @@ export async function budgetVsActualForMonth(
         budgetId: b.id,
         categoryId: b.categoryId,
         categoryName: b.category.name,
-        budgetAmount: b.amount,
+        budgetAmount: toNumber(b.amount),
         spent: totalSpent,
-        remaining: remainingBudget(b.amount, totalSpent),
+        remaining: remainingBudget(toNumber(b.amount), totalSpent),
         isRecurring: b.isRecurring,
       };
     }),

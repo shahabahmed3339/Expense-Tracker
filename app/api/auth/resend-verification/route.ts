@@ -8,7 +8,7 @@ import { createRateLimitKey, enforceRateLimit } from "@/server/middleware/rateLi
 
 export async function POST(req: Request) {
   try {
-    const ipLimit = enforceRateLimit(req, AUTH_RATE_LIMITS.resendVerificationIp);
+    const ipLimit = await enforceRateLimit(req, AUTH_RATE_LIMITS.resendVerificationIp);
     if (ipLimit) return ipLimit;
 
     const { email } = (await req.json()) as { email?: string };
@@ -17,7 +17,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: AUTH_API_MESSAGES.emailRequired }, { status: 400 });
     }
 
-    const emailLimit = enforceRateLimit(req, {
+    const emailLimit = await enforceRateLimit(req, {
       ...AUTH_RATE_LIMITS.resendVerificationEmail,
       key: createRateLimitKey(req, normalized),
     });

@@ -2,6 +2,7 @@ import type { PrismaClient } from "@prisma/client";
 import { TRPCError } from "@trpc/server";
 import { sumFloats } from "@/lib/calculations/split";
 import { monthRange } from "@/lib/dates/month";
+import { toDecimal } from "@/lib/money";
 
 type SplitInput = {
   personId?: string | null;
@@ -197,7 +198,7 @@ export async function createExpense(
     data: {
       userId,
       categoryId: data.categoryId,
-      amount: data.amount,
+      amount: toDecimal(data.amount),
       date: data.date,
       note: data.note ?? undefined,
     },
@@ -249,14 +250,14 @@ export async function createExpenseWithSplits(
       data: {
         userId,
         categoryId: data.categoryId,
-        amount: data.amount,
+        amount: toDecimal(data.amount),
         date: data.date,
         note: data.note ?? undefined,
         splits: {
           create: data.splits.map((s) => ({
             personId: s.personId ?? null,
             name: s.name,
-            amount: s.amount,
+            amount: toDecimal(s.amount),
             isSelf: s.isSelf ?? false,
             isPaid: s.isPaid ?? false,
           })),
@@ -287,7 +288,7 @@ export async function updateExpense(
   return prisma.expense.update({
     where: { id },
     data: {
-      ...(patch.amount !== undefined && { amount: patch.amount }),
+      ...(patch.amount !== undefined && { amount: toDecimal(patch.amount) }),
       ...(patch.categoryId !== undefined && { categoryId: patch.categoryId }),
       ...(patch.date !== undefined && { date: patch.date }),
       ...(patch.note !== undefined && { note: patch.note === null ? null : patch.note }),

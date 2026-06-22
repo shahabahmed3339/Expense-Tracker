@@ -11,7 +11,7 @@ import { Modal } from "@/components/ui/Modal";
 import { Button } from "@/components/ui/Button";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { MonthInput } from "@/components/ui/MonthInput";
-import { AmountText } from "@/components/ui/AmountText";
+import { AmountText, type MoneyLike } from "@/components/ui/AmountText";
 import { FilterBar, FilterField } from "@/components/ui/FilterBar";
 import { EmptyState } from "@/components/EmptyState";
 import { Loader } from "@/components/Loader";
@@ -40,18 +40,25 @@ export default function ExpensesPage() {
   const [splitFilter, setSplitFilter] = useState<"all" | "split" | "unsplit">("all");
   const [groupByCategory, setGroupByCategory] = useState(true);
 
-  const { data, isLoading, error } = api.expense.list.useQuery({ month, take: 100 });
+  const PAGE_SIZE = 30;
+  const [take, setTake] = useState(PAGE_SIZE);
+
+  const { data, isLoading, error, refetch, isFetching } = api.expense.list.useQuery({
+    month,
+    take,
+  });
   const { data: categories } = api.category.list.useQuery();
   const utils = api.useUtils();
 
   const del = api.expense.delete.useMutation({
     onSuccess: async () => {
-      await utils.expense.list.invalidate({ month, take: 100 });
+      await utils.expense.list.invalidate();
       await utils.dashboard.summary.invalidate();
     },
   });
 
   const items = useMemo(() => data?.items ?? [], [data?.items]);
+
   const filteredItems = useMemo(() => {
     return items.filter((expense) => {
       const matchesSearch =
@@ -95,7 +102,7 @@ export default function ExpensesPage() {
   };
 
   if (isLoading) return <Loader />;
-  if (error) return <ErrorState message={error.message} />;
+  if (error) return <ErrorState message={error.message} onRetry={() => refetch()} />;
 
   return (
     <div className="space-y-6">
@@ -107,7 +114,13 @@ export default function ExpensesPage() {
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
-          <MonthInput value={month} onChange={setMonth} />
+          <MonthInput
+            value={month}
+            onChange={(value) => {
+              setMonth(value);
+              setTake(PAGE_SIZE);
+            }}
+          />
           <Button onClick={() => openNewExpense()}>Add expense</Button>
         </div>
       </div>
@@ -192,6 +205,18 @@ export default function ExpensesPage() {
         />
       )}
 
+      {data?.nextCursor && (
+        <div className="flex justify-center pt-2">
+          <Button
+            type="button"
+            disabled={isFetching}
+            onClick={() => setTake((current) => current + PAGE_SIZE)}
+          >
+            {isFetching ? "Loading..." : "Load more"}
+          </Button>
+        </div>
+      )}
+
       <Modal open={open} onClose={() => setOpen(false)} title="New expense">
         <LazyExpenseForm
           initialValues={newExpenseValues ?? undefined}
@@ -240,7 +265,7 @@ function ExpenseList({
 }: {
   items: {
     id: string;
-    amount: number;
+    amount: MoneyLike;
     date: Date;
     note: string | null;
     categoryId: string;

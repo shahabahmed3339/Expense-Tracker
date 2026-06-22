@@ -1,7 +1,24 @@
-export function ErrorState({ message }: { message?: string }) {
+"use client";
+
+import { Button } from "@/components/ui/Button";
+
+export function ErrorState({
+  message,
+  onRetry,
+}: {
+  message?: string;
+  onRetry?: () => void;
+}) {
   return (
-    <p className="text-red-400 text-sm py-6">
-      {message ? message : "Something went wrong"}
-    </p>
+    <div className="py-6 text-center">
+      <p className="text-red-400 text-sm mb-3">
+        {message ? message : "Something went wrong"}
+      </p>
+      {onRetry && (
+        <Button type="button" onClick={onRetry}>
+          Try again
+        </Button>
+      )}
+    </div>
   );
 }

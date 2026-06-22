@@ -6,6 +6,7 @@ import {
   createLoan,
   deleteLoanTransaction,
   deleteLoan,
+  listLoanTransactions,
   listLoans,
   loanBalance,
   updateLoanTransaction,
@@ -14,6 +15,21 @@ import {
 
 export const loanRouter = router({
   list: protectedProcedure.query(({ ctx }) => listLoans(ctx.prisma, ctx.session.user.id)),
+
+  listTransactions: protectedProcedure
+    .input(
+      z.object({
+        loanId: z.string().min(1),
+        cursor: z.string().optional().nullable(),
+        take: z.number().min(1).max(50).optional(),
+      }),
+    )
+    .query(({ ctx, input }) =>
+      listLoanTransactions(ctx.prisma, ctx.session.user.id, input.loanId, {
+        cursor: input.cursor ?? undefined,
+        take: input.take,
+      }),
+    ),
 
   create: protectedProcedure
     .input(
@@ -53,7 +69,7 @@ export const loanRouter = router({
         loanId: z.string().min(1),
         amount: z.number().positive(),
         date: z.coerce.date(),
-        note: z.string().optional().nullable(),
+        note: z.string().max(500).optional().nullable(),
       }),
     )
     .mutation(({ ctx, input }) => addLoanTransaction(ctx.prisma, ctx.session.user.id, input)),
@@ -64,7 +80,7 @@ export const loanRouter = router({
         id: z.string().min(1),
         amount: z.number().positive().optional(),
         date: z.coerce.date().optional(),
-        note: z.string().optional().nullable(),
+        note: z.string().max(500).optional().nullable(),
       }),
     )
     .mutation(({ ctx, input }) => {

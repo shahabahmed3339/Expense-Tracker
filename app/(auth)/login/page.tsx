@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Loader } from "@/components/Loader";
 import { APP_CONFIG } from "@/lib/config/runtime";
+import { TurnstileWidget } from "@/components/TurnstileWidget";
 import { useKeyboardShortcuts } from "@/lib/hooks/useKeyboardShortcuts";
 
 export default function LoginPage() {
@@ -26,6 +27,7 @@ export default function LoginPage() {
   const [unverifiedEmail, setUnverifiedEmail] = useState("");
   const [requiresOtp, setRequiresOtp] = useState(false);
   const [otpExpiresAt, setOtpExpiresAt] = useState<number | null>(null);
+  const [turnstileToken, setTurnstileToken] = useState<string | undefined>();
   const [otpSecondsLeft, setOtpSecondsLeft] = useState(0);
 
   useEffect(() => {
@@ -59,6 +61,7 @@ export default function LoginPage() {
         body: JSON.stringify({
           email: email.trim().toLowerCase(),
           password,
+          turnstileToken,
         }),
       });
       const body = await response.json().catch(() => ({}));
@@ -261,6 +264,8 @@ export default function LoginPage() {
                     </button>
                   </div>
                 </div>
+
+                <TurnstileWidget onVerify={setTurnstileToken} />
 
                 <div className="exp-auth-actions">
                   <button

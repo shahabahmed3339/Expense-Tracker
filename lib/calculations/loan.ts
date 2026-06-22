@@ -1,3 +1,3 @@
 export function loanRemainingBalance(totalAmount: number, paidSum: number): number {
-  return Math.round((totalAmount - paidSum) * 100) / 100;
+  return Math.max(0, Math.round((totalAmount - paidSum) * 100) / 100);
 }

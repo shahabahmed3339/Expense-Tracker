@@ -7,6 +7,7 @@ import { COMMON_UI } from "@/lib/constants/ui";
 import { api } from "@/lib/trpc";
 import { formatShortDate } from "@/lib/formatting/date";
 import { formatAmount, parseAmountInput } from "@/lib/formatting/currency";
+import { toNumber } from "@/lib/money";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
@@ -107,8 +108,8 @@ export default function LoansPage() {
 
   const filteredLoans = useMemo(() => {
     return (loans ?? []).filter((loan) => {
-      const paid = loan.transactions.reduce((sum, tx) => sum + tx.amount, 0);
-      const remaining = Math.max(loan.totalAmount - paid, 0);
+      const paid = loan.transactions.reduce((sum, tx) => sum + toNumber(tx.amount), 0);
+      const remaining = Math.max(toNumber(loan.totalAmount) - paid, 0);
       const matchesSearch =
         search.trim().length === 0 ||
         [loan.person.name, loan.type, loan.transactions.map((tx) => tx.note ?? "").join(" ")]
@@ -195,8 +196,8 @@ export default function LoansPage() {
       ) : (
         <ul className="space-y-4">
           {filteredLoans.map((loan) => {
-            const paid = loan.transactions.reduce((sum, tx) => sum + tx.amount, 0);
-            const remaining = Math.max(loan.totalAmount - paid, 0);
+            const paid = loan.transactions.reduce((sum, tx) => sum + toNumber(tx.amount), 0);
+            const remaining = Math.max(toNumber(loan.totalAmount) - paid, 0);
 
             return (
               <li key={loan.id} className="motion-card space-y-3 rounded-xl border border-[var(--border)] bg-[var(--card)] p-4">
@@ -470,8 +471,8 @@ export default function LoansPage() {
 
               const paidExcludingCurrent = loan.transactions
                 .filter((transaction) => transaction.id !== paymentEditor.transactionId)
-                .reduce((sum, transaction) => sum + transaction.amount, 0);
-              const remaining = Math.max(loan.totalAmount - paidExcludingCurrent, 0);
+                .reduce((sum, transaction) => sum + toNumber(transaction.amount), 0);
+              const remaining = Math.max(toNumber(loan.totalAmount) - paidExcludingCurrent, 0);
 
               if (nextAmount - remaining > 0.01) {
                 toast.error(`Payment cannot exceed the remaining amount of ${remaining.toFixed(2)}`);

@@ -10,15 +10,19 @@ export function FilterBar({ children }: { children: React.ReactNode }) {
 
 export function FilterField({
   label,
+  htmlFor,
   children,
 }: {
   label: string;
+  htmlFor?: string;
   children: React.ReactNode;
 }) {
   return (
-    <label className="block text-sm text-[var(--muted)]">
-      <span className="mb-1 block text-xs font-medium uppercase tracking-wide">{label}</span>
+    <div className="block text-sm text-[var(--muted)]">
+      <label htmlFor={htmlFor} className="mb-1 block text-xs font-medium uppercase tracking-wide">
+        {label}
+      </label>
       {children}
-    </label>
+    </div>
   );
 }

@@ -14,7 +14,7 @@ import { MonthInput } from "@/components/ui/MonthInput";
 import { Modal } from "@/components/ui/Modal";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { InlineCreateCategory } from "@/components/dependencies/InlineCreateCategory";
-import { AmountText } from "@/components/ui/AmountText";
+import { AmountText, type MoneyLike } from "@/components/ui/AmountText";
 import { FilterBar, FilterField } from "@/components/ui/FilterBar";
 import { MoneyInput } from "@/components/ui/MoneyInput";
 import { EmptyState } from "@/components/EmptyState";
@@ -544,7 +544,7 @@ function BudgetTable({
 }: {
   rows: {
     id: string;
-    amount: number;
+    amount: MoneyLike;
     isRecurring: boolean;
     categoryId: string;
     updatedAt: Date;

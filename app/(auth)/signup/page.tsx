@@ -9,6 +9,7 @@ import { Loader } from "@/components/Loader";
 import { APP_CONFIG } from "@/lib/config/runtime";
 import { getPasswordValidationMessage, validatePassword } from "@/lib/auth/password";
 import { useKeyboardShortcuts } from "@/lib/hooks/useKeyboardShortcuts";
+import { TurnstileWidget } from "@/components/TurnstileWidget";
 import { toast } from "sonner";
 
 export default function SignupPage() {
@@ -21,6 +22,7 @@ export default function SignupPage() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [pending, setPending] = useState(false);
   const [resendingVerification, setResendingVerification] = useState(false);
+  const [turnstileToken, setTurnstileToken] = useState<string | undefined>();
   const [registeredEmail, setRegisteredEmail] = useState("");
 
   useEffect(() => {
@@ -53,6 +55,7 @@ export default function SignupPage() {
           email: normalizedEmail,
           password,
           name: name.trim() || undefined,
+          turnstileToken,
         }),
       });
       const body = await res.json().catch(() => ({}));
@@ -242,6 +245,8 @@ export default function SignupPage() {
 
             {passwordError ? <p className="exp-auth-helper exp-auth-helper-error">{passwordError}</p> : null}
             {confirmError ? <p className="exp-auth-helper exp-auth-helper-error">{confirmError}</p> : null}
+
+            <TurnstileWidget onVerify={setTurnstileToken} />
 
             <div className="exp-auth-actions">
               <button

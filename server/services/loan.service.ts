@@ -1,6 +1,7 @@
 import type { PrismaClient } from "@prisma/client";
 import { TRPCError } from "@trpc/server";
 import { loanRemainingBalance } from "@/lib/calculations/loan";
+import { toDecimal, toNumber } from "@/lib/money";
 
 async function getLoanWithTransactions(prisma: PrismaClient, userId: string, loanId: string) {
   const loan = await prisma.loan.findFirst({
@@ -35,10 +36,42 @@ export async function listLoans(prisma: PrismaClient, userId: string) {
     where: { userId },
     include: {
       person: true,
-      transactions: { orderBy: [{ updatedAt: "desc" }, { date: "desc" }] },
+      transactions: {
+        orderBy: [{ updatedAt: "desc" }, { date: "desc" }],
+        take: 20,
+      },
+      _count: { select: { transactions: true } },
     },
     orderBy: [{ updatedAt: "desc" }, { createdAt: "desc" }],
   });
+}
+
+export async function listLoanTransactions(
+  prisma: PrismaClient,
+  userId: string,
+  loanId: string,
+  opts: { cursor?: string; take?: number } = {},
+) {
+  const loan = await prisma.loan.findFirst({ where: { id: loanId, userId } });
+  if (!loan) {
+    throw new TRPCError({ code: "NOT_FOUND", message: "Loan not found" });
+  }
+
+  const take = Math.min(opts.take ?? 20, 50);
+  const rows = await prisma.loanTransaction.findMany({
+    where: { loanId },
+    orderBy: [{ updatedAt: "desc" }, { date: "desc" }],
+    take: take + 1,
+    ...(opts.cursor ? { cursor: { id: opts.cursor }, skip: 1 } : {}),
+  });
+
+  let nextCursor: string | undefined;
+  if (rows.length > take) {
+    const extra = rows.pop();
+    nextCursor = extra?.id;
+  }
+
+  return { items: rows, nextCursor };
 }
 
 export async function createLoan(
@@ -54,7 +87,7 @@ export async function createLoan(
       userId,
       personId: data.personId,
       type: data.type,
-      totalAmount: data.totalAmount,
+      totalAmount: toDecimal(data.totalAmount),
     },
     include: { person: true, transactions: true },
   });
@@ -75,7 +108,7 @@ export async function updateLoan(
   }
 
   if (patch.totalAmount !== undefined) {
-    const paidSum = row.transactions.reduce((sum, transaction) => sum + transaction.amount, 0);
+    const paidSum = row.transactions.reduce((sum, transaction) => sum + toNumber(transaction.amount), 0);
     if (patch.totalAmount + 0.01 < paidSum) {
       throw new TRPCError({
         code: "BAD_REQUEST",
@@ -87,7 +120,7 @@ export async function updateLoan(
   return prisma.loan.update({
     where: { id },
     data: {
-      ...(patch.totalAmount !== undefined && { totalAmount: patch.totalAmount }),
+      ...(patch.totalAmount !== undefined && { totalAmount: toDecimal(patch.totalAmount) }),
       ...(patch.personId !== undefined && { personId: patch.personId }),
       ...(patch.type !== undefined && { type: patch.type }),
     },
@@ -107,15 +140,15 @@ export async function addLoanTransaction(
   data: { loanId: string; amount: number; date: Date; note?: string | null },
 ) {
   const loan = await getLoanWithTransactions(prisma, userId, data.loanId);
-  const paidSum = loan.transactions.reduce((sum, transaction) => sum + transaction.amount, 0);
-  assertPaymentDoesNotExceedRemaining(loan.totalAmount, paidSum, data.amount);
+  const paidSum = loan.transactions.reduce((sum, transaction) => sum + toNumber(transaction.amount), 0);
+  assertPaymentDoesNotExceedRemaining(toNumber(loan.totalAmount), paidSum, data.amount);
 
   return prisma.$transaction(async (tx) => {
     const touchTime = new Date();
     const transaction = await tx.loanTransaction.create({
       data: {
         loanId: data.loanId,
-        amount: data.amount,
+        amount: toDecimal(data.amount),
         date: data.date,
         note: data.note ?? undefined,
       },
@@ -150,9 +183,9 @@ export async function updateLoanTransaction(
     const loan = await getLoanWithTransactions(prisma, userId, transaction.loanId);
     const paidExcludingCurrent = loan.transactions
       .filter((entry) => entry.id !== transaction.id)
-      .reduce((sum, entry) => sum + entry.amount, 0);
+      .reduce((sum, entry) => sum + toNumber(entry.amount), 0);
 
-    assertPaymentDoesNotExceedRemaining(loan.totalAmount, paidExcludingCurrent, patch.amount);
+    assertPaymentDoesNotExceedRemaining(toNumber(loan.totalAmount), paidExcludingCurrent, patch.amount);
   }
 
   return prisma.$transaction(async (tx) => {
@@ -160,7 +193,7 @@ export async function updateLoanTransaction(
     const updated = await tx.loanTransaction.update({
       where: { id },
       data: {
-        ...(patch.amount !== undefined && { amount: patch.amount }),
+        ...(patch.amount !== undefined && { amount: toDecimal(patch.amount) }),
         ...(patch.date !== undefined && { date: patch.date }),
         ...(patch.note !== undefined && { note: patch.note }),
       },
@@ -206,11 +239,12 @@ export async function loanBalance(prisma: PrismaClient, userId: string, loanId: 
   });
   if (!loan) throw new TRPCError({ code: "NOT_FOUND", message: "Loan not found" });
 
-  const paid = loan.transactions.reduce((s, t) => s + t.amount, 0);
+  const paid = loan.transactions.reduce((s, t) => s + toNumber(t.amount), 0);
+  const total = toNumber(loan.totalAmount);
   return {
-    totalAmount: loan.totalAmount,
+    totalAmount: total,
     paidSum: paid,
-    remaining: loanRemainingBalance(loan.totalAmount, paid),
+    remaining: loanRemainingBalance(total, paid),
     type: loan.type,
   };
 }

@@ -4,7 +4,7 @@ import { replaceExpenseSplits } from "../services/split.service";
 
 const splitLine = z.object({
   personId: z.string().min(1).optional().nullable(),
-  name: z.string().min(1),
+  name: z.string().min(1).max(100),
   amount: z.number().positive(),
   isSelf: z.boolean().optional(),
   isPaid: z.boolean().optional(),

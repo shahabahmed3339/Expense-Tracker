@@ -8,15 +8,17 @@ import { AUTH_API_MESSAGES, AUTH_TIMING } from "@/server/config/auth";
 import { AUTH_RATE_LIMITS } from "@/server/config/rateLimit";
 import { prisma } from "@/server/db/client";
 import { createRateLimitKey, enforceRateLimit } from "@/server/middleware/rateLimit";
+import { verifyTurnstileToken } from "@/server/middleware/turnstile";
 
 const bodySchema = z.object({
   email: z.string().email(),
   password: z.string().min(1),
+  turnstileToken: z.string().optional(),
 });
 
 export async function POST(req: Request) {
   try {
-    const ipLimit = enforceRateLimit(req, AUTH_RATE_LIMITS.loginStartIp);
+    const ipLimit = await enforceRateLimit(req, AUTH_RATE_LIMITS.loginStartIp);
     if (ipLimit) return ipLimit;
 
     const json = await req.json();
@@ -27,7 +29,16 @@ export async function POST(req: Request) {
 
     const email = parsed.data.email.trim().toLowerCase();
     const password = parsed.data.password;
-    const emailLimit = enforceRateLimit(req, {
+
+    const turnstileOk = await verifyTurnstileToken(
+      parsed.data.turnstileToken,
+      createRateLimitKey(req),
+    );
+    if (!turnstileOk) {
+      return NextResponse.json({ error: "Bot verification failed" }, { status: 400 });
+    }
+
+    const emailLimit = await enforceRateLimit(req, {
       ...AUTH_RATE_LIMITS.loginStartEmail,
       key: createRateLimitKey(req, email),
     });

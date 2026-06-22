@@ -2,9 +2,11 @@ import type { PrismaClient } from "@prisma/client";
 import { compare, hash } from "bcryptjs";
 import { TRPCError } from "@trpc/server";
 import { getPasswordValidationMessage } from "@/lib/auth/password";
+import { deleteProfileImageIfBlob, uploadProfileImage } from "@/lib/profile/blob";
 import { sanitizeProfileImage } from "@/lib/profile/image";
 import { buildVerificationEmail, sendEmail } from "@/server/auth/email";
 import { addHours, generateVerificationToken } from "@/server/auth/tokens";
+import { createAuditLog } from "./audit.service";
 
 export async function getProfile(prisma: PrismaClient, userId: string) {
   const user = await prisma.user.findUnique({
@@ -38,6 +40,7 @@ export async function updateProfile(
       id: true,
       name: true,
       email: true,
+      image: true,
     },
   });
 
@@ -64,7 +67,16 @@ export async function updateProfile(
 
   let image: string | null;
   try {
-    image = sanitizeProfileImage(data.image);
+    const sanitized = sanitizeProfileImage(data.image);
+    if (sanitized && sanitized.startsWith("data:")) {
+      await deleteProfileImageIfBlob(currentUser.image);
+      image = await uploadProfileImage(userId, sanitized);
+    } else {
+      if (sanitized === null && currentUser.image) {
+        await deleteProfileImageIfBlob(currentUser.image);
+      }
+      image = sanitized;
+    }
   } catch (error) {
     throw new TRPCError({
       code: "BAD_REQUEST",
@@ -132,6 +144,7 @@ export async function updateProfile(
       to: normalizedEmail,
       ...buildVerificationEmail(result.updatedUser.name ?? currentUser.name, verificationUrl),
     });
+    await createAuditLog({ userId, action: "profile.email_change", resource: "user" });
   }
 
   return {
@@ -166,6 +179,8 @@ export async function changePassword(
     data: { passwordHash },
   });
 
+  await createAuditLog({ userId, action: "profile.password_change", resource: "user" });
+
   return { ok: true };
 }
 
@@ -173,6 +188,12 @@ export async function setOtpEnabled(prisma: PrismaClient, userId: string, enable
   await prisma.user.update({
     where: { id: userId },
     data: { otpEnabled: enabled },
+  });
+
+  await createAuditLog({
+    userId,
+    action: enabled ? "profile.otp_enabled" : "profile.otp_disabled",
+    resource: "user",
   });
 
   return { ok: true };
@@ -198,6 +219,7 @@ export async function deleteAccount(
     }
   }
 
+  await createAuditLog({ userId, action: "profile.account_delete", resource: "user" });
   await prisma.user.delete({ where: { id: userId } });
   return { ok: true };
 }

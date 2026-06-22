@@ -15,7 +15,7 @@ const bodySchema = z.object({
 
 export async function POST(req: Request) {
   try {
-    const ipLimit = enforceRateLimit(req, AUTH_RATE_LIMITS.loginResendIp);
+    const ipLimit = await enforceRateLimit(req, AUTH_RATE_LIMITS.loginResendIp);
     if (ipLimit) return ipLimit;
 
     const json = await req.json();
@@ -33,7 +33,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: AUTH_API_MESSAGES.otpChallengeInvalid }, { status: 400 });
     }
 
-    const challengeLimit = enforceRateLimit(req, {
+    const challengeLimit = await enforceRateLimit(req, {
       ...AUTH_RATE_LIMITS.loginResendChallenge,
       key: createRateLimitKey(req, challenge.id),
     });

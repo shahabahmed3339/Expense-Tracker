@@ -70,7 +70,7 @@ export function PWAInstallButton() {
       type="button"
       onClick={() => void handleInstall()}
       disabled={isPrompting}
-      className="hidden rounded-md bg-accent px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-accent-dim disabled:cursor-not-allowed disabled:opacity-60 sm:inline-flex"
+      className="inline-flex rounded-md bg-accent px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-accent-dim disabled:cursor-not-allowed disabled:opacity-60"
       aria-label={isPrompting ? "Opening install prompt" : "Install app"}
       title={isPrompting ? "Opening install prompt" : "Install app"}
     >

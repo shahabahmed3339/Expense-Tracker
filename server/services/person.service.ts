@@ -72,5 +72,18 @@ export async function updatePerson(
 export async function deletePerson(prisma: PrismaClient, userId: string, id: string) {
   const row = await prisma.person.findFirst({ where: { id, userId } });
   if (!row) throw new TRPCError({ code: "NOT_FOUND", message: "Person not found" });
+
+  const [splitCount, loanCount] = await Promise.all([
+    prisma.expenseSplit.count({ where: { personId: id } }),
+    prisma.loan.count({ where: { personId: id, userId } }),
+  ]);
+
+  if (splitCount > 0 || loanCount > 0) {
+    throw new TRPCError({
+      code: "CONFLICT",
+      message: "Cannot delete person linked to splits or loans",
+    });
+  }
+
   return prisma.person.delete({ where: { id } });
 }

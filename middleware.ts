@@ -1,8 +1,6 @@
 import nextAuth from "next-auth/middleware";
 
-export default function proxy(...args: Parameters<typeof nextAuth>) {
-  return nextAuth(...args);
-}
+export default nextAuth;
 
 export const config = {
   matcher: [
@@ -13,5 +11,8 @@ export const config = {
     "/persons/:path*",
     "/categories/:path*",
     "/splits/:path*",
+    "/profile/:path*",
+    "/reports/:path*",
+    "/onboarding/:path*",
   ],
 };

@@ -1,5 +1,6 @@
 type MonthInputProps = {
   label?: string;
+  id?: string;
   value: string;
   onChange: (value: string) => void;
   className?: string;
@@ -7,14 +8,16 @@ type MonthInputProps = {
 
 export function MonthInput({
   label = "Month",
+  id,
   value,
   onChange,
   className,
 }: MonthInputProps) {
   return (
-    <label className={className ?? "text-sm text-[var(--muted)]"}>
+    <label className={className ?? "text-sm text-[var(--muted)]"} htmlFor={id}>
       {label}{" "}
       <input
+        id={id}
         type="month"
         value={value}
         onChange={(event) => onChange(event.target.value)}

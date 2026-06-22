@@ -1,0 +1,12 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/cleanup-tokens",
+      "schedule": "0 3 * * *"
+    },
+    {
+      "path": "/api/cron/recurring-expenses",
+      "schedule": "0 6 * * *"
+    }
+  ]
+}

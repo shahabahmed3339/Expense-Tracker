@@ -102,23 +102,10 @@ export const authOptions: NextAuthOptions = {
     async session({ session, token }) {
       if (session.user) {
         session.user.id = (token.id as string) ?? session.user.email ?? "";
-        const currentUser =
-          token.id && typeof token.id === "string"
-            ? await prisma.user.findUnique({
-                where: { id: token.id },
-                select: {
-                  name: true,
-                  email: true,
-                  image: true,
-                },
-              })
-            : null;
-
-        session.user.name = currentUser?.name ?? (typeof token.name === "string" ? token.name : session.user.name);
-        session.user.email = currentUser?.email ?? (typeof token.email === "string" ? token.email : session.user.email);
+        session.user.name = typeof token.name === "string" ? token.name : session.user.name;
+        session.user.email = typeof token.email === "string" ? token.email : session.user.email;
         session.user.image =
-          currentUser?.image ??
-          (typeof token.picture === "string" ? token.picture : session.user.image);
+          typeof token.picture === "string" ? token.picture : session.user.image;
       }
       return session;
     },

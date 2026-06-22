@@ -6,11 +6,12 @@ import { api } from "@/lib/trpc";
 import { equalSplitParts, sumFloats } from "@/lib/calculations/split";
 import { groupBy } from "@/lib/collections/grouping";
 import { formatAmount, parseAmountInput } from "@/lib/formatting/currency";
+import { toNumber } from "@/lib/money";
 import { formatShortDate } from "@/lib/formatting/date";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
 import { InlineCreatePerson } from "@/components/dependencies/InlineCreatePerson";
-import { AmountText } from "@/components/ui/AmountText";
+import { AmountText, type MoneyLike } from "@/components/ui/AmountText";
 import { FilterBar, FilterField } from "@/components/ui/FilterBar";
 import { MoneyInput } from "@/components/ui/MoneyInput";
 import { EmptyState } from "@/components/EmptyState";
@@ -203,7 +204,7 @@ export default function SplitsPage() {
     targetExpense.splits.forEach((split) => {
       const key = split.isSelf ? SELF_KEY : split.personId ?? split.id;
       nextSelected[key] = true;
-      nextAmounts[key] = formatAmount(split.amount);
+      nextAmounts[key] = formatAmount(toNumber(split.amount));
       nextPaid[key] = split.isPaid;
     });
 
@@ -226,7 +227,7 @@ export default function SplitsPage() {
       return;
     }
 
-    const parts = equalSplitParts(expense.amount, chosen.length);
+    const parts = equalSplitParts(toNumber(expense.amount), chosen.length);
     const nextAmounts: AmountMap = {};
     chosen.forEach((participant, index) => {
       nextAmounts[participant.key] = formatAmount(parts[index]);
@@ -250,7 +251,7 @@ export default function SplitsPage() {
 
     const splits =
       mode === "equal"
-        ? equalSplitParts(expense.amount, chosen.length).map((amount, index) => {
+        ? equalSplitParts(toNumber(expense.amount), chosen.length).map((amount, index) => {
             const participant = chosen[index];
             return {
               personId: participant.personId,
@@ -275,9 +276,9 @@ export default function SplitsPage() {
       return;
     }
 
-    const sum = sumFloats(splits.map((split) => split.amount));
-    if (Math.abs(sum - expense.amount) > 0.02) {
-      toast.error(`Splits must sum to ${formatAmount(expense.amount)} (currently ${formatAmount(sum)})`);
+    const sum = sumFloats(splits.map((split) => toNumber(split.amount)));
+    if (Math.abs(sum - toNumber(expense.amount)) > 0.02) {
+      toast.error(`Splits must sum to ${formatAmount(toNumber(expense.amount))} (currently ${formatAmount(sum)})`);
       return;
     }
 
@@ -736,11 +737,11 @@ function SplitTable({
 }: {
   entries: {
     id: string;
-    amount: number;
+    amount: MoneyLike;
     date: Date;
     updatedAt: Date;
     category: { name: string };
-    splits: { id: string; amount: number; isPaid: boolean; isSelf: boolean }[];
+    splits: { id: string; amount: MoneyLike; isPaid: boolean; isSelf: boolean }[];
   }[];
   onView: (expenseId: string) => void;
   onEdit: (expenseId: string) => void;

@@ -1,9 +1,11 @@
 import nodemailer from "nodemailer";
 import fs from "fs";
 import path from "path";
-import { google } from "googleapis";
+import { Resend } from "resend";
+import { env } from "@/env";
 import { APP_CONFIG, AUTH_CONFIG, EMAIL_CONFIG } from "@/lib/config/runtime";
 import { AUTH_EMAIL_COPY } from "@/server/config/auth";
+import { logger } from "@/server/lib/logger";
 
 type EmailPayload = {
   to: string;
@@ -18,141 +20,88 @@ type EmailPayload = {
   }>;
 };
 
-export async function sendEmail(payload: EmailPayload) {
-  const from = process.env.EMAIL_FROM;
-  const host = process.env.SMTP_HOST;
-  const port = Number(process.env.SMTP_PORT ?? "587");
-  const user = process.env.SMTP_USER;
-  const pass = process.env.SMTP_PASS;
-  const secure =
-    process.env.SMTP_SECURE === "true" ||
-    (!process.env.SMTP_SECURE && Number.isFinite(port) && port === 465);
+function hasResendConfig() {
+  return !!env.RESEND_API_KEY && !!env.EMAIL_FROM;
+}
 
-  if (from && host && Number.isFinite(port) && user && pass) {
-    const transporter = nodemailer.createTransport({
-      host,
-      port,
-      secure,
-      auth: {
-        user,
-        pass,
-      },
-    });
+function hasSmtpConfig() {
+  return !!(
+    env.EMAIL_FROM &&
+    env.SMTP_HOST &&
+    env.SMTP_USER &&
+    env.SMTP_PASS &&
+    env.SMTP_PORT
+  );
+}
 
-    try {
-      await transporter.sendMail({
-        from,
-        to: payload.to,
-        subject: payload.subject,
-        html: payload.html,
-        text: payload.text,
-        attachments: payload.attachments,
-      });
-    } catch (error) {
-      throw error;
-    }
+function resolveProvider(): "resend" | "smtp" | null {
+  if (env.EMAIL_PROVIDER === "resend" && hasResendConfig()) return "resend";
+  if (env.EMAIL_PROVIDER === "smtp" && hasSmtpConfig()) return "smtp";
+  if (env.EMAIL_PROVIDER === "auto") {
+    if (hasResendConfig()) return "resend";
+    if (hasSmtpConfig()) return "smtp";
+  }
+  return null;
+}
 
-    return;
+async function sendViaResend(payload: EmailPayload) {
+  const resend = new Resend(env.RESEND_API_KEY!);
+  const { error } = await resend.emails.send({
+    from: env.EMAIL_FROM!,
+    to: payload.to,
+    subject: payload.subject,
+    html: payload.html,
+    text: payload.text,
+  });
+  if (error) {
+    throw new Error(error.message);
   }
 }
 
-// Alternative email sending method using Gmail API with service account
-export async function sendEmailViaGmailAPI(payload: EmailPayload) {
-  const clientEmail = process.env.GMAIL_CLIENT_EMAIL;
-  const privateKey = process.env.GMAIL_PRIVATE_KEY;
-  const projectId = process.env.GMAIL_PROJECT_ID;
-  const from = process.env.EMAIL_FROM;
+async function sendViaSmtp(payload: EmailPayload) {
+  const port = env.SMTP_PORT ?? 587;
+  const secure =
+    env.SMTP_SECURE === "true" || (env.SMTP_SECURE === undefined && port === 465);
 
-  if (!clientEmail || !privateKey || !projectId || !from) {
-    throw new Error(
-      "Gmail API configuration missing: GMAIL_CLIENT_EMAIL, GMAIL_PRIVATE_KEY, GMAIL_PROJECT_ID, EMAIL_FROM"
-    );
-  }
+  const transporter = nodemailer.createTransport({
+    host: env.SMTP_HOST!,
+    port,
+    secure,
+    auth: {
+      user: env.SMTP_USER!,
+      pass: env.SMTP_PASS!,
+    },
+  });
 
-  try {
-    const auth = new google.auth.JWT({
-      email: clientEmail,
-      key: privateKey.replace(/\\n/g, "\n"),
-      scopes: ["https://www.googleapis.com/auth/gmail.send"],
-    });
+  await transporter.sendMail({
+    from: env.EMAIL_FROM!,
+    to: payload.to,
+    subject: payload.subject,
+    html: payload.html,
+    text: payload.text,
+    attachments: payload.attachments,
+  });
+}
 
-    const gmail = google.gmail({ version: "v1", auth });
+export async function sendEmail(payload: EmailPayload) {
+  const provider = resolveProvider();
 
-    // Build the email message
-    let emailContent = [
-      `From: ${from}`,
-      `To: ${payload.to}`,
-      `Subject: ${payload.subject}`,
-      'MIME-Version: 1.0',
-      'Content-Type: multipart/alternative; boundary="boundary123"',
-      '',
-      '--boundary123',
-      'Content-Type: text/plain; charset="UTF-8"',
-      'Content-Transfer-Encoding: 7bit',
-      '',
-      payload.text,
-      '',
-      '--boundary123',
-      'Content-Type: text/html; charset="UTF-8"',
-      'Content-Transfer-Encoding: 7bit',
-      '',
-      payload.html,
-      '',
-      '--boundary123--',
-    ].join("\r\n");
-
-    // Handle attachments if provided
-    if (payload.attachments && payload.attachments.length > 0) {
-      const boundary = "boundary456";
-      const lines = [
-        `From: ${from}`,
-        `To: ${payload.to}`,
-        `Subject: ${payload.subject}`,
-        'MIME-Version: 1.0',
-        `Content-Type: multipart/mixed; boundary="${boundary}"`,
-        '',
-        `--${boundary}`,
-        'Content-Type: text/html; charset="UTF-8"',
-        'Content-Transfer-Encoding: 7bit',
-        '',
-        payload.html,
-        '',
-      ];
-
-      for (const attachment of payload.attachments) {
-        const fileContent = fs.readFileSync(attachment.path);
-        const base64Content = fileContent.toString("base64");
-        lines.push(`--${boundary}`);
-        lines.push(`Content-Type: ${attachment.contentType}`);
-        lines.push('Content-Transfer-Encoding: base64');
-        lines.push(`Content-Disposition: attachment; filename="${attachment.filename}"`);
-        lines.push(`Content-ID: <${attachment.cid}>`);
-        lines.push('');
-        lines.push(base64Content);
-        lines.push('');
-      }
-
-      lines.push(`--${boundary}--`);
-      emailContent = lines.join("\r\n");
+  if (!provider) {
+    if (env.NODE_ENV === "production") {
+      throw new Error("Email provider not configured");
     }
-
-    const encodedMessage = Buffer.from(emailContent)
-      .toString("base64")
-      .replace(/\+/g, "-")
-      .replace(/\//g, "_")
-      .replace(/=+$/, "");
-
-    await gmail.users.messages.send({
-      userId: "me",
-      requestBody: {
-        raw: encodedMessage,
-      },
-    });
-
+    logger.info({ to: payload.to, subject: payload.subject }, "Email skipped (no provider in dev)");
     return;
-  } catch (error) {
-    throw error;
   }
+
+  if (provider === "resend") {
+    await sendViaResend(payload);
+    logger.info({ to: payload.to, provider: "resend" }, "Email sent");
+    return;
+  }
+
+  await sendViaSmtp(payload);
+  logger.info({ to: payload.to, provider: "smtp" }, "Email sent");
 }
 
 const logoCid = EMAIL_CONFIG.logoCid;

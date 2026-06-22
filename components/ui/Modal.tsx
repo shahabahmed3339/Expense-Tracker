@@ -1,11 +1,13 @@
 "use client";
 
 import { createPortal } from "react-dom";
-import { useEffect, useRef } from "react";
+import { useEffect, useId, useRef } from "react";
 import { useHydrated } from "@/lib/hooks/useHydrated";
 import { useKeyboardShortcuts } from "@/lib/hooks/useKeyboardShortcuts";
 
 const modalStack: symbol[] = [];
+const FOCUSABLE =
+  'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
 
 export function Modal({
   open,
@@ -24,18 +26,54 @@ export function Modal({
 }) {
   const hydrated = useHydrated();
   const modalId = useRef(Symbol("modal"));
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const titleId = useId();
 
   useEffect(() => {
     if (!open || !hydrated) return;
 
     const id = modalId.current;
     modalStack.push(id);
+    const previouslyFocused = document.activeElement as HTMLElement | null;
+
+    const focusFirst = () => {
+      const dialog = dialogRef.current;
+      if (!dialog) return;
+      const focusable = dialog.querySelectorAll<HTMLElement>(FOCUSABLE);
+      if (focusable.length > 0) {
+        focusable[0].focus();
+      } else {
+        dialog.focus();
+      }
+    };
+    requestAnimationFrame(focusFirst);
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "Tab" || modalStack[modalStack.length - 1] !== id) return;
+      const dialog = dialogRef.current;
+      if (!dialog) return;
+      const focusable = Array.from(dialog.querySelectorAll<HTMLElement>(FOCUSABLE));
+      if (focusable.length === 0) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
 
     return () => {
+      document.removeEventListener("keydown", handleKeyDown);
       const index = modalStack.lastIndexOf(id);
       if (index >= 0) {
         modalStack.splice(index, 1);
       }
+      previouslyFocused?.focus();
     };
   }, [hydrated, open]);
 
@@ -50,14 +88,18 @@ export function Modal({
         }
       },
     },
-    ...(onConfirm ? [{
-      key: "Enter",
-      action: () => {
-        if (isTopModal()) {
-          onConfirm();
-        }
-      },
-    }] : []),
+    ...(onConfirm
+      ? [
+          {
+            key: "Enter",
+            action: () => {
+              if (isTopModal()) {
+                onConfirm();
+              }
+            },
+          },
+        ]
+      : []),
   ], open);
 
   if (!open || !hydrated) return null;
@@ -68,14 +110,19 @@ export function Modal({
       onClick={onClose}
     >
       <div
-        className={`motion-dialog-in dialog-surface flex max-h-[90dvh] w-full flex-col overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--card)] max-w-${maxWidth ? `[${maxWidth}]` : "md" }`}
+        ref={dialogRef}
+        className={`motion-dialog-in dialog-surface flex max-h-[90dvh] w-full flex-col overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--card)] max-w-${maxWidth ? `[${maxWidth}]` : "md"}`}
         role="dialog"
         aria-modal="true"
+        aria-labelledby={title ? titleId : undefined}
+        tabIndex={-1}
         onClick={(event) => event.stopPropagation()}
       >
         {title && (
           <div className="border-b border-[var(--border)] px-4 py-3">
-            <h2 className="text-lg font-semibold text-[var(--fg)]">{title}</h2>
+            <h2 id={titleId} className="text-lg font-semibold text-[var(--fg)]">
+              {title}
+            </h2>
           </div>
         )}
         <div className="min-h-0 overflow-y-auto overscroll-contain px-4 py-4">

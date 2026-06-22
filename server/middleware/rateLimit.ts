@@ -1,4 +1,8 @@
+import { Ratelimit } from "@upstash/ratelimit";
+import { Redis } from "@upstash/redis";
 import { NextResponse } from "next/server";
+import { env } from "@/env";
+import { logger } from "@/server/lib/logger";
 import { RATE_LIMIT_MESSAGES } from "@/server/config/rateLimit";
 
 type RateLimitOptions = {
@@ -21,6 +25,30 @@ const rateLimitStore = globalThis as typeof globalThis & {
 const buckets = rateLimitStore.__expenseTrackerRateLimitStore ?? new Map<string, RateLimitBucket>();
 rateLimitStore.__expenseTrackerRateLimitStore = buckets;
 
+const redis =
+  env.UPSTASH_REDIS_REST_URL && env.UPSTASH_REDIS_REST_TOKEN
+    ? new Redis({
+        url: env.UPSTASH_REDIS_REST_URL,
+        token: env.UPSTASH_REDIS_REST_TOKEN,
+      })
+    : null;
+
+const upstashLimiters = new Map<string, Ratelimit>();
+
+function getUpstashLimiter(options: RateLimitOptions) {
+  const cacheKey = `${options.scope}:${options.limit}:${options.windowMs}`;
+  let limiter = upstashLimiters.get(cacheKey);
+  if (!limiter && redis) {
+    limiter = new Ratelimit({
+      redis,
+      limiter: Ratelimit.slidingWindow(options.limit, `${options.windowMs} ms`),
+      prefix: `rl:${options.scope}`,
+    });
+    upstashLimiters.set(cacheKey, limiter);
+  }
+  return limiter;
+}
+
 export function createRateLimitKey(req: Request, suffix = "") {
   const forwardedFor = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim();
   const realIp = req.headers.get("x-real-ip")?.trim();
@@ -29,11 +57,11 @@ export function createRateLimitKey(req: Request, suffix = "") {
   return suffix ? `${identifier}:${suffix}` : identifier;
 }
 
-export function enforceRateLimit(req: Request, options: RateLimitOptions) {
+function enforceInMemoryRateLimit(options: RateLimitOptions) {
   pruneExpiredBuckets();
 
   const now = Date.now();
-  const bucketKey = `${options.scope}:${options.key ?? createRateLimitKey(req)}`;
+  const bucketKey = `${options.scope}:${options.key ?? "default"}`;
   const current = buckets.get(bucketKey);
 
   if (!current || current.resetAt <= now) {
@@ -63,6 +91,50 @@ export function enforceRateLimit(req: Request, options: RateLimitOptions) {
   current.count += 1;
   buckets.set(bucketKey, current);
   return null;
+}
+
+export async function enforceRateLimit(req: Request, options: RateLimitOptions) {
+  const key = options.key ?? createRateLimitKey(req);
+  const limiter = getUpstashLimiter(options);
+
+  if (!limiter) {
+    return enforceInMemoryRateLimit({ ...options, key });
+  }
+
+  const result = await limiter.limit(`${options.scope}:${key}`);
+  if (!result.success) {
+    const retryAfterSeconds = Math.max(1, Math.ceil((result.reset - Date.now()) / 1000));
+    logger.warn({ scope: options.scope, key }, "Rate limit exceeded");
+    return NextResponse.json(
+      {
+        error: options.message ?? RATE_LIMIT_MESSAGES.tooManyRequests,
+        retryAfterSeconds,
+      },
+      {
+        status: 429,
+        headers: {
+          "Retry-After": String(retryAfterSeconds),
+        },
+      },
+    );
+  }
+
+  return null;
+}
+
+export async function checkUserMutationRateLimit(userId: string) {
+  const limiter = getUpstashLimiter({
+    scope: "trpc-mutation",
+    limit: 60,
+    windowMs: 60_000,
+  });
+
+  if (!limiter) {
+    return true;
+  }
+
+  const result = await limiter.limit(`user:${userId}`);
+  return result.success;
 }
 
 function pruneExpiredBuckets() {

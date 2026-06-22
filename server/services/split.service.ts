@@ -1,6 +1,7 @@
 import type { PrismaClient } from "@prisma/client";
 import { TRPCError } from "@trpc/server";
 import { sumFloats } from "@/lib/calculations/split";
+import { toDecimal, toNumber } from "@/lib/money";
 
 export async function replaceExpenseSplits(
   prisma: PrismaClient,
@@ -19,7 +20,7 @@ export async function replaceExpenseSplits(
 
   if (splits.length > 0) {
     const sum = sumFloats(splits.map((s) => s.amount));
-    if (Math.abs(sum - expense.amount) > 0.01) {
+    if (Math.abs(sum - toNumber(expense.amount)) > 0.01) {
       throw new TRPCError({
         code: "BAD_REQUEST",
         message: "Split amounts must sum to expense amount",
@@ -64,7 +65,7 @@ export async function replaceExpenseSplits(
         expenseId,
         personId: s.personId ?? null,
         name: s.name,
-        amount: s.amount,
+        amount: toDecimal(s.amount),
         isSelf: s.isSelf ?? false,
         isPaid: s.isPaid ?? false,
       })),

@@ -6,7 +6,7 @@ import { enforceRateLimit } from "@/server/middleware/rateLimit";
 
 export async function POST(req: Request) {
   try {
-    const ipLimit = enforceRateLimit(req, AUTH_RATE_LIMITS.verifyEmailIp);
+    const ipLimit = await enforceRateLimit(req, AUTH_RATE_LIMITS.verifyEmailIp);
     if (ipLimit) return ipLimit;
 
     const { token } = (await req.json()) as { token?: string };

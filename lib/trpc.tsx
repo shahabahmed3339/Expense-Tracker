@@ -4,7 +4,8 @@ import { useState } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { httpBatchLink } from "@trpc/client";
 import { createTRPCReact } from "@trpc/react-query";
-import superjson from "superjson";
+import { superjson } from "@/lib/superjson";
+import { toast } from "sonner";
 import { APP_CONFIG } from "@/lib/config/runtime";
 import type { AppRouter } from "@/server/routers";
 
@@ -21,7 +22,12 @@ export function TRPCReactProvider(props: { children: React.ReactNode }) {
     () =>
       new QueryClient({
         defaultOptions: {
-          queries: { staleTime: 30 * 1000 },
+          queries: { staleTime: 30 * 1000, retry: 1 },
+          mutations: {
+            onError: (error) => {
+              toast.error(error.message);
+            },
+          },
         },
       }),
   );
